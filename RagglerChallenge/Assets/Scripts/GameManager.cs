@@ -100,15 +100,37 @@ public class GameManager : MonoBehaviour
         running = false;
         int stars = CalcStars();
 
-        if (!endless && currentStage < totalStages)
+        if (endless)
+        {
+            EndlessScoreTracker.Instance?.AddMatch();
+            RewardManager.Instance?.OnEndlessRoundComplete(stars);
+        }
+        else if (currentStage < totalStages)
         {
             if (stars > stageBestStars[currentStage])
+            {
                 stageBestStars[currentStage] = stars;
-            SaveProgress();
+                SaveProgress();
+            }
+            // Fire blockchain claim — RewardManager checks on-chain delta
+            RewardManager.Instance?.OnStageComplete(currentStage + 1, stars);
         }
 
         UIManager.Instance.ShowStars(stars);
         UIManager.Instance.ShowResult(stars);
+    }
+
+    /// <summary>Called by RewardManager when on-chain best stars are fetched.</summary>
+    public void SyncBestStarsFromChain(int stageId, int chainStars)
+    {
+        int idx = stageId - 1;
+        if (idx < 0 || idx >= stageBestStars.Length) return;
+        // Chain is the source of truth — only upgrade local cache, never downgrade
+        if (chainStars > stageBestStars[idx])
+        {
+            stageBestStars[idx] = chainStars;
+            SaveProgress();
+        }
     }
 
     public void OnGameOver()
