@@ -53,7 +53,9 @@ async function main() {
     tokenAddress:     tokenAddr,
     rewardsAddress:   rewardsAddr,
     tokensPerStar:    "10000000000000000000",   // 10 * 10^18
-    explorerBase:     "https://testnet.bscscan.com"
+    explorerBase:     "https://testnet.bscscan.com",
+    backendUrl:       process.env.BACKEND_URL || "https://your-game-backend.example.com",
+    wsUrl:            process.env.WS_URL      || "wss://your-game-backend.example.com/ws",
   };
 
   fs.writeFileSync("deployed-addresses.json", JSON.stringify(config, null, 2));

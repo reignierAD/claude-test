@@ -1,12 +1,22 @@
 {
   "name": "raggler-signer-server",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "main": "index.js",
-  "scripts": { "start": "node index.js" },
+  "scripts": {
+    "start":   "node index.js",
+    "dev":     "nodemon index.js",
+    "setup-stream": "node ../scripts/setupMoralisStream.js"
+  },
   "dependencies": {
-    "cors":    "^2.8.5",
-    "dotenv":  "^16.4.0",
-    "ethers":  "^6.11.0",
-    "express": "^4.19.0"
+    "cors":           "^2.8.5",
+    "dotenv":         "^16.4.0",
+    "ethers":         "^6.11.0",
+    "express":        "^4.19.0",
+    "jsonwebtoken":   "^9.0.2",
+    "moralis":        "^2.26.0",
+    "ws":             "^8.17.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }

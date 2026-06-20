@@ -25,21 +25,32 @@ public class UIRewardDisplay : MonoBehaviour
     [Header("Claim Button")]
     public Button claimButton;
 
+    [Header("USD Value")]
+    public TextMeshProUGUI usdValueText;
+
     void Awake() => Instance = this;
 
     void Start()
     {
-        connectWalletButton?.onClick.AddListener(Web3Manager.Instance.ConnectWallet);
+        // Wallet connect triggers Moralis Auth flow (not raw MetaMask anymore)
+        connectWalletButton?.onClick.AddListener(() => {
+            // Step 1: connect MetaMask to get address, then hand off to Moralis Auth
+            Web3Manager.Instance.ConnectWallet();
+        });
 
         var w = Web3Manager.Instance;
         w.onWalletConnected.AddListener(addr =>
         {
             if (walletAddressText) walletAddressText.text = $"{addr[..6]}...{addr[^4..]}";
             connectWalletButton?.gameObject.SetActive(false);
+            // Kick off Moralis Auth now that we have the address
+            MoralisManager.Instance.Login(addr);
         });
 
-        w.onBalanceUpdated.AddListener(bal =>
+        // Balance is now driven by MoralisManager, not direct contract reads
+        MoralisManager.Instance.onBalanceReceived.AddListener(data =>
         {
+            float bal = float.TryParse(data.balanceFormatted, out float f) ? f : 0f;
             if (raggBalanceText) raggBalanceText.text = $"{bal:F2} RAGG";
         });
 
@@ -107,5 +118,17 @@ public class UIRewardDisplay : MonoBehaviour
     {
         if (rewardTitleText) rewardTitleText.text = "Claim Error";
         if (rewardBodyText)  rewardBodyText.text  = msg;
+    }
+
+    /// <summary>Called by EarningsHistoryUI when Moralis balance data arrives.</summary>
+    public void UpdateBalanceDisplay(string balanceFormatted, string usdValue)
+    {
+        float bal = float.TryParse(balanceFormatted, out float f) ? f : 0f;
+        if (raggBalanceText) raggBalanceText.text = $"{bal:F2} RAGG";
+        if (usdValueText && !string.IsNullOrEmpty(usdValue))
+        {
+            float usd = float.TryParse(usdValue, out float u) ? u : 0f;
+            usdValueText.text = $"≈ ${usd:F4}";
+        }
     }
 }
