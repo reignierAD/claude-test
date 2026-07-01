@@ -1,23 +1,14 @@
 using UnityEngine;
+using System;
 using System.Collections;
-using System.Collections.Generic;
-using UnityEngine.Networking;
+using System.Net.Http;
+using System.Text;
+using System.Threading.Tasks;
 
 /// <summary>
 /// Bridges game results to on-chain claims.
-///
-/// Flow:
-///  1. GameManager calls RewardManager.OnStageComplete / OnEndlessRoundComplete.
-///  2. RewardManager checks on-chain best stars to decide if a claim is valid.
-///  3. If tokens are earnable, it requests a backend signature via HTTP.
-///  4. On signature received, it tells Web3Manager to submit the tx.
-///
-/// Backend signature endpoint (your own server):
-///   POST /sign-reward
-///   Body: { player, stageId, stars, nonce, isEndless, chainId }
-///   Response: { sig: "0x..." }
-///
-/// This keeps the private signer key off the client entirely.
+/// Uses System.Net.Http.HttpClient (standard .NET) instead of
+/// UnityWebRequest to avoid the CS1069 assembly-forwarding error in Unity 2022.
 /// </summary>
 public class RewardManager : MonoBehaviour
 {
@@ -27,10 +18,11 @@ public class RewardManager : MonoBehaviour
     [Tooltip("Your game server that holds the GAME_SIGNER_PRIVATE_KEY and returns signatures.")]
     public string backendSignerUrl = "https://your-game-backend.example.com/sign-reward";
 
+    private static readonly HttpClient http = new HttpClient();
+
     // On-chain best stars cached from the blockchain (source of truth)
     private int[] chainBestStars = new int[11];   // index 1-10
 
-    // Pending claim waiting for backend signature
     private struct PendingSignatureRequest
     {
         public bool   isEndless;
@@ -45,10 +37,6 @@ public class RewardManager : MonoBehaviour
 
     // ── Called by GameManager ─────────────────────────────────────────────────
 
-    /// <summary>
-    /// Called when a numbered stage is completed.
-    /// Stars must exceed the on-chain best to earn tokens.
-    /// </summary>
     public void OnStageComplete(int stageId, int stars)
     {
         if (!Web3Manager.Instance.IsConnected)
@@ -66,12 +54,10 @@ public class RewardManager : MonoBehaviour
             return;
         }
 
-        int tokensToEarn = delta * 10;   // 10 RAGG per new star
-        UIRewardDisplay.Instance?.ShowPendingClaim(stageId, stars, tokensToEarn, endless: false);
+        UIRewardDisplay.Instance?.ShowPendingClaim(stageId, stars, delta * 10, endless: false);
         Web3Manager.Instance.ClaimStageReward(stageId, stars);
     }
 
-    /// <summary>Called after every Endless round. No cap — always earnable.</summary>
     public void OnEndlessRoundComplete(int stars)
     {
         if (!Web3Manager.Instance.IsConnected)
@@ -80,12 +66,11 @@ public class RewardManager : MonoBehaviour
             return;
         }
 
-        int tokensToEarn = stars * 10;
-        UIRewardDisplay.Instance?.ShowPendingClaim(0, stars, tokensToEarn, endless: true);
+        UIRewardDisplay.Instance?.ShowPendingClaim(0, stars, stars * 10, endless: true);
         Web3Manager.Instance.ClaimEndlessReward(stars);
     }
 
-    // ── Signature request (called by Web3Manager after nonce fetched) ─────────
+    // ── Signature request ─────────────────────────────────────────────────────
 
     public void RequestBackendSignature(bool isEndless, int stageId, int stars, ulong nonce, string player)
     {
@@ -97,36 +82,33 @@ public class RewardManager : MonoBehaviour
             nonce     = nonce,
             player    = player,
         };
-        StartCoroutine(FetchSignature());
+        StartCoroutine(FetchSignatureCoroutine());
     }
 
-    IEnumerator FetchSignature()
+    IEnumerator FetchSignatureCoroutine()
     {
-        var body = JsonUtility.ToJson(new SignRequest
+        string body = JsonUtility.ToJson(new SignRequest
         {
             player    = pendingRequest.player,
             stageId   = pendingRequest.stageId,
             stars     = pendingRequest.stars,
             nonce     = pendingRequest.nonce.ToString(),
             isEndless = pendingRequest.isEndless,
-            chainId   = 97   // BSC Testnet
+            chainId   = 97
         });
 
-        using var req = new UnityWebRequest(backendSignerUrl, "POST");
-        req.uploadHandler   = new UploadHandlerRaw(System.Text.Encoding.UTF8.GetBytes(body));
-        req.downloadHandler = new DownloadHandlerBuffer();
-        req.SetRequestHeader("Content-Type", "application/json");
+        // Run async HttpClient call and wait for it inside coroutine
+        Task<string> task = PostJsonAsync(backendSignerUrl, body);
+        yield return new WaitUntil(() => task.IsCompleted);
 
-        yield return req.SendWebRequest();
-
-        if (req.result != UnityWebRequest.Result.Success)
+        if (task.IsFaulted)
         {
-            Debug.LogError($"[Reward] Backend error: {req.error}");
+            Debug.LogError($"[Reward] Backend error: {task.Exception?.GetBaseException().Message}");
             UIRewardDisplay.Instance?.ShowClaimError("Could not reach game server.");
             yield break;
         }
 
-        var resp = JsonUtility.FromJson<SignResponse>(req.downloadHandler.text);
+        var resp = JsonUtility.FromJson<SignResponse>(task.Result);
         if (string.IsNullOrEmpty(resp?.sig))
         {
             UIRewardDisplay.Instance?.ShowClaimError("Invalid signature from server.");
@@ -142,14 +124,20 @@ public class RewardManager : MonoBehaviour
         );
     }
 
-    // ── Chain data callbacks (called by Web3Manager) ──────────────────────────
+    static async Task<string> PostJsonAsync(string url, string json)
+    {
+        var content  = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await http.PostAsync(url, content);
+        response.EnsureSuccessStatusCode();
+        return await response.Content.ReadAsStringAsync();
+    }
+
+    // ── Chain data callbacks ───────────────────────────────────────────────────
 
     public void OnChainBestStarsReceived(int stageId, int stars)
     {
         if (stageId >= 1 && stageId <= 10)
             chainBestStars[stageId] = stars;
-
-        // Update GameManager's local save to match chain state (chain is truth)
         GameManager.Instance?.SyncBestStarsFromChain(stageId, stars);
     }
 
@@ -158,8 +146,7 @@ public class RewardManager : MonoBehaviour
 
     // ── Serialisation helpers ─────────────────────────────────────────────────
 
-    [System.Serializable]
-    private class SignRequest
+    [Serializable] private class SignRequest
     {
         public string player;
         public int    stageId;
@@ -169,6 +156,5 @@ public class RewardManager : MonoBehaviour
         public int    chainId;
     }
 
-    [System.Serializable]
-    private class SignResponse { public string sig; }
+    [Serializable] private class SignResponse { public string sig; }
 }
