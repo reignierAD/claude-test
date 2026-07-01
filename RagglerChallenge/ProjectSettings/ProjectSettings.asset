@@ -569,6 +569,7 @@ PlayerSettings:
   managedDebuggingEnabled: 0
   allowBreakpoints: 0
   monoEnv:
+  activeInputHandler: 0
   psp2Splashimage: {fileID: 0}
   capacity: 0
   virtualTextureSupport: 0
