@@ -1,0 +1,99 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f177c352446dd41e2b332411f89e81d1, type: 3}
+  m_Name: GameSettings
+  m_EditorClassIdentifier: Assembly-CSharp::GameSettings
+  cardKinds:
+  - cardName: Poring
+    sprite: {fileID: 0}
+    color: {r: 1, g: 0.55, b: 0.75, a: 1}
+  - cardName: Drops
+    sprite: {fileID: 0}
+    color: {r: 1, g: 0.62, b: 0.25, a: 1}
+  - cardName: Poporing
+    sprite: {fileID: 0}
+    color: {r: 0.45, g: 0.8, b: 0.35, a: 1}
+  - cardName: Lunatic
+    sprite: {fileID: 0}
+    color: {r: 0.88, g: 0.88, b: 0.94, a: 1}
+  - cardName: Spore
+    sprite: {fileID: 0}
+    color: {r: 0.9, g: 0.3, b: 0.28, a: 1}
+  - cardName: Marin
+    sprite: {fileID: 0}
+    color: {r: 0.35, g: 0.6, b: 0.95, a: 1}
+  - cardName: Metaling
+    sprite: {fileID: 0}
+    color: {r: 0.55, g: 0.58, b: 0.65, a: 1}
+  - cardName: Angeling
+    sprite: {fileID: 0}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  backgroundSprite: {fileID: 0}
+  backgroundColor: {r: 1, g: 0.95, b: 0.86, a: 1}
+  levels:
+  - tiles: 9
+    cardVarieties: 3
+    layers: 2
+    threeStarTime: 20
+    twoStarTime: 40
+  - tiles: 18
+    cardVarieties: 5
+    layers: 2
+    threeStarTime: 30
+    twoStarTime: 60
+  - tiles: 24
+    cardVarieties: 5
+    layers: 3
+    threeStarTime: 40
+    twoStarTime: 80
+  - tiles: 30
+    cardVarieties: 6
+    layers: 3
+    threeStarTime: 50
+    twoStarTime: 95
+  - tiles: 39
+    cardVarieties: 6
+    layers: 3
+    threeStarTime: 60
+    twoStarTime: 110
+  - tiles: 48
+    cardVarieties: 7
+    layers: 4
+    threeStarTime: 75
+    twoStarTime: 130
+  - tiles: 57
+    cardVarieties: 7
+    layers: 4
+    threeStarTime: 90
+    twoStarTime: 150
+  - tiles: 66
+    cardVarieties: 8
+    layers: 4
+    threeStarTime: 105
+    twoStarTime: 170
+  - tiles: 78
+    cardVarieties: 8
+    layers: 5
+    threeStarTime: 120
+    twoStarTime: 195
+  - tiles: 90
+    cardVarieties: 8
+    layers: 5
+    threeStarTime: 140
+    twoStarTime: 220
+  endlessVarieties: 8
+  endlessMinTiles: 30
+  endlessMaxTiles: 51
+  endlessLayers: 5
+  endlessDuration: 180
+  endlessStar3Time: 60
+  endlessStar2Time: 120
