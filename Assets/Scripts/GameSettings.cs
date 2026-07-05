@@ -84,8 +84,8 @@ public class GameSettings : ScriptableObject
     public float peekabooMaxInterval = 15f;
     [Tooltip("How long the image stays peeked out, in seconds.")]
     public float peekabooShowTime = 2.5f;
-    [Tooltip("Approximate size of the peekaboo image in UI pixels.")]
-    public float peekabooSize = 220f;
+    [Tooltip("Approximate size of the peekaboo image in UI pixels (reference canvas is 1600x900). They render in front of the UI and can be tapped to shoo them away.")]
+    public float peekabooSize = 770f;
 
     [Header("Levels")]
     [Tooltip("One entry per level. Card varieties per level are set here (e.g. 3 in level 1, 5 in level 2...).")]

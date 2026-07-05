@@ -70,16 +70,29 @@ public class Peekaboo : MonoBehaviour
         }
 
         var rt = Ui.Rect("Peekaboo", transform, new Vector2(size, size), hidden, anchor);
-        rt.SetSiblingIndex(0); // behind the menu buttons and labels
+        rt.SetAsLastSibling(); // in front of the menu UI
         rt.localEulerAngles = new Vector3(0f, 0f, baseAngle + Random.Range(-14f, 14f));
         var img = rt.gameObject.AddComponent<Image>();
         img.sprite = sprite;
         img.preserveAspect = true;
-        img.raycastTarget = false;
+
+        // it can cover buttons, so tapping it shoos it away immediately
+        img.raycastTarget = true;
+        var btn = rt.gameObject.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(() =>
+        {
+            if (rt == null) return;
+            btn.interactable = false;
+            img.raycastTarget = false; // stop blocking the UI right away
+            Tween.MoveTo(rt, hidden, 0.22f);
+            Destroy(rt.gameObject, 0.3f);
+        });
 
         Tween.MoveTo(rt, shown, 0.45f);
         yield return new WaitForSeconds(0.45f + Mathf.Max(0.5f, s.peekabooShowTime));
         if (rt == null) yield break;
+        img.raycastTarget = false;
         Tween.MoveTo(rt, hidden, 0.4f);
         yield return new WaitForSeconds(0.45f);
         if (rt != null) Destroy(rt.gameObject);
