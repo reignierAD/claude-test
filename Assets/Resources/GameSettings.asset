@@ -45,51 +45,61 @@ MonoBehaviour:
     layers: 2
     threeStarTime: 20
     twoStarTime: 40
+    sideStackCards: 0
   - tiles: 18
     cardVarieties: 5
     layers: 2
     threeStarTime: 30
     twoStarTime: 60
+    sideStackCards: 0
   - tiles: 24
     cardVarieties: 5
     layers: 3
     threeStarTime: 40
     twoStarTime: 80
+    sideStackCards: 0
   - tiles: 30
     cardVarieties: 6
     layers: 3
     threeStarTime: 50
     twoStarTime: 95
+    sideStackCards: 6
   - tiles: 39
     cardVarieties: 6
     layers: 3
     threeStarTime: 60
     twoStarTime: 110
+    sideStackCards: 0
   - tiles: 48
     cardVarieties: 7
     layers: 4
     threeStarTime: 75
     twoStarTime: 130
+    sideStackCards: 6
   - tiles: 57
     cardVarieties: 7
     layers: 4
     threeStarTime: 90
     twoStarTime: 150
+    sideStackCards: 0
   - tiles: 66
     cardVarieties: 8
     layers: 4
     threeStarTime: 105
     twoStarTime: 170
+    sideStackCards: 9
   - tiles: 78
     cardVarieties: 8
     layers: 5
     threeStarTime: 120
     twoStarTime: 195
+    sideStackCards: 9
   - tiles: 90
     cardVarieties: 8
     layers: 5
     threeStarTime: 140
     twoStarTime: 220
+    sideStackCards: 10
   endlessVarieties: 8
   endlessMinTiles: 30
   endlessMaxTiles: 51
@@ -97,3 +107,4 @@ MonoBehaviour:
   endlessDuration: 180
   endlessStar3Time: 60
   endlessStar2Time: 120
+  endlessSideStackCards: 10
