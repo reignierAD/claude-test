@@ -1,0 +1,28 @@
+# Unity generated folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Rr]ecordings/
+
+# Package lock is regenerated from manifest.json
+Packages/packages-lock.json
+
+# IDE / OS
+.idea/
+.vs/
+.vscode/
+*.csproj
+*.sln
+*.user
+.DS_Store
+Thumbs.db
+
+# Crash reports
+sysinfo.txt
+*.stackdump
+crashlytics-build.properties

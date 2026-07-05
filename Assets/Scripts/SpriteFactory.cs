@@ -1,0 +1,136 @@
+using UnityEngine;
+
+/// <summary>
+/// Generates the few sprites the game needs (rounded rectangle, circle) at
+/// runtime so the project requires no imported art assets.
+/// </summary>
+public static class SpriteFactory
+{
+    static Sprite _rounded;
+    static Sprite _circle;
+    static Sprite _star;
+
+    /// <summary>White rounded-rect, 9-sliced so it scales to any size.</summary>
+    public static Sprite RoundedRect
+    {
+        get
+        {
+            if (_rounded == null) _rounded = BuildRoundedRect(64, 16f);
+            return _rounded;
+        }
+    }
+
+    /// <summary>White filled circle.</summary>
+    public static Sprite Circle
+    {
+        get
+        {
+            if (_circle == null) _circle = BuildCircle(64);
+            return _circle;
+        }
+    }
+
+    /// <summary>White five-pointed star.</summary>
+    public static Sprite Star
+    {
+        get
+        {
+            if (_star == null) _star = BuildStar(64);
+            return _star;
+        }
+    }
+
+    static Sprite BuildStar(int size)
+    {
+        // 10 alternating outer/inner vertices, point at the top
+        var verts = new Vector2[10];
+        float cx = size * 0.5f, cy = size * 0.5f;
+        float outer = size * 0.48f, inner = size * 0.20f;
+        for (int i = 0; i < 10; i++)
+        {
+            float ang = Mathf.PI * 0.5f + i * Mathf.PI / 5f;
+            float r = (i % 2 == 0) ? outer : inner;
+            verts[i] = new Vector2(cx + Mathf.Cos(ang) * r, cy + Mathf.Sin(ang) * r);
+        }
+
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                // 2x2 supersampling for soft edges
+                int hits = 0;
+                for (int sy = 0; sy < 2; sy++)
+                    for (int sx = 0; sx < 2; sx++)
+                        if (PointInPolygon(new Vector2(x + 0.25f + sx * 0.5f, y + 0.25f + sy * 0.5f), verts))
+                            hits++;
+                pixels[y * size + x] = new Color(1f, 1f, 1f, hits / 4f);
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+    }
+
+    static bool PointInPolygon(Vector2 p, Vector2[] poly)
+    {
+        bool inside = false;
+        for (int i = 0, j = poly.Length - 1; i < poly.Length; j = i++)
+        {
+            if ((poly[i].y > p.y) != (poly[j].y > p.y) &&
+                p.x < (poly[j].x - poly[i].x) * (p.y - poly[i].y) / (poly[j].y - poly[i].y) + poly[i].x)
+                inside = !inside;
+        }
+        return inside;
+    }
+
+    static Sprite BuildRoundedRect(int size, float radius)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        float half = size * 0.5f;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float px = x + 0.5f - half;
+                float py = y + 0.5f - half;
+                float dx = Mathf.Max(Mathf.Abs(px) - (half - radius), 0f);
+                float dy = Mathf.Max(Mathf.Abs(py) - (half - radius), 0f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy) - radius;
+                float alpha = Mathf.Clamp01(0.5f - dist); // ~1px anti-aliasing
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        float border = radius + 6f;
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f),
+            100f, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
+    }
+
+    static Sprite BuildCircle(int size)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        float half = size * 0.5f;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float px = x + 0.5f - half;
+                float py = y + 0.5f - half;
+                float dist = Mathf.Sqrt(px * px + py * py) - (half - 1f);
+                float alpha = Mathf.Clamp01(0.5f - dist);
+                pixels[y * size + x] = new Color(1f, 1f, 1f, alpha);
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
+    }
+}
