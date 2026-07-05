@@ -1,26 +1,47 @@
-# Raggler's Challenge — Unity Replica
+# Raggler's Challenge — Unity Replica (WebGL + BSC Testnet)
 
-A Unity replica of the **"Raggler's Challenge"** mini-game from *Ragnarok Origin*
-(the popular *triple-tile matching* genre, as seen in 3 Tiles / Zen Match /
-Sheep a Sheep). Not a pixel-perfect copy — the mechanics, item system, star
-rating and scoring are all there, with placeholder art generated entirely at
-runtime.
+A Unity replica of the **"Raggler's Challenge"** mini-game from *Ragnarok
+Origin* (the popular *triple-tile matching* genre, as seen in 3 Tiles /
+Zen Match / Sheep a Sheep). The mechanics, item system, star rating and
+scoring are all there — plus a Web3 layer: **MetaMask login on BNB Smart
+Chain Testnet**, with **stars convertible to ERC-20 tokens** (via
+[Moralis](https://moralis.com/) for balance reads).
 
 ## Requirements
 
-- **Unity 6** (6000.0 or newer — including the latest Unity 6.x releases).
-  Older editors from 2022.3 LTS onward should also work.
+- **Unity 6** (6000.0 or newer — including the latest 6.x releases).
 - No packages beyond the built-in **uGUI** (already in the manifest).
-- No art, prefabs or scene wiring: every sprite and UI element is generated
-  from code when you press Play.
+- Everything renders with runtime-generated placeholder art until you
+  assign your own pictures in the settings asset (see below).
 
 ## How to run
 
 1. Open the project folder with Unity Hub (add it as an existing project).
-   If your editor is newer than the pinned version, let Unity upgrade it.
-2. Open `Assets/Scenes/Main.unity` (or literally any scene — even an empty
-   new one works, the game bootstraps itself at runtime).
-3. Press **Play**.
+2. Open `Assets/Scenes/Main.unity` (any scene works — the game bootstraps
+   itself at runtime) and press **Play**.
+
+## Customizing the game in the editor 🎨
+
+Run **Tools > Raggler > Create Game Settings Asset** once. This creates
+`Assets/Resources/GameSettings.asset`; select it and everything is editable
+in the Inspector — no code required:
+
+- **Cards**: add/remove entries in *Card Kinds* to change how many
+  varieties exist, and assign a **Sprite** to each to use your own card
+  pictures (drag any imported image; set its Texture Type to *Sprite (2D
+  and UI)*). Entries without a sprite render as colored placeholder circles.
+- **Background**: assign a full-screen *Background Sprite*, or just pick a
+  *Background Color*.
+- **Levels**: one list entry per level (add more entries = more levels).
+  Each level sets its own **card varieties** (e.g. 3 kinds in level 1,
+  5 in level 2, ...), tile count, layer depth and the two star-time
+  thresholds.
+- **Endless Mode**: a **fixed** variety count and a tile-count range
+  (default 30–51 cards per board), plus the run timer and the times at
+  which stars burn out.
+
+If no asset exists, the game silently uses built-in defaults identical to
+the shipped values.
 
 ## How to play
 
@@ -28,7 +49,7 @@ runtime.
   Cards covered by a higher layer are darkened and can't be picked.
 - **Three identical cards** in the clearing zone clear automatically.
 - The clearing zone holds **7 cards max** — go over and you **lose**.
-- Clear every card on the board to win the stage.
+- Clear every card on the board to win the level.
 
 ### Items (right panel)
 
@@ -38,46 +59,67 @@ runtime.
 | **Undo** | Returns the last card you played from the zone back to its board spot. |
 | **Refresh** | Reshuffles the kinds of all cards still on the board. |
 
-Each item is limited to **10 uses per stage** and consumes inventory
-(you start with 37 / 5 / 23 and earn +1 of each per stage cleared).
+Each item is limited to **10 uses per level** and consumes inventory
+(you start with 37 / 5 / 23 and earn +1 of each per level cleared).
 
 ### Rating & scoring
 
-- **Stars (per stage):** based on completion time — finish under the stage's
-  fast threshold for ★★★, under the slow threshold for ★★, otherwise ★.
-  The three stars at the top of the HUD dim in real time as thresholds pass.
-- **Score:** 30 points per cleared triple, multiplied by a **combo** (up to
-  ×5) when matches land within 4 seconds of each other, plus a time bonus
-  on stage clear (10 pts per second under the 2-star threshold).
-- **Endless mode:** boards keep coming and get harder each round (more cards,
-  kinds and layers); the clearing zone carries over between rounds. Each
-  cleared round pays a rising bonus. Best score is saved.
+- **Levels:** stars come from completion time (3★ under the fast
+  threshold, 2★ under the slow one, otherwise 1★). The HUD stars dim in
+  real time. Score = 30 pts per triple × combo (up to ×5 within 4s) +
+  a time bonus on clear.
+- **Endless:** boards of a fixed variety pool keep coming while a
+  **countdown timer** runs. Your three stars burn out at configurable
+  times; when the timer hits zero (or the zone overflows) the run ends
+  and **the stars still lit are what you keep** — and what you can claim
+  as tokens.
 
-### Progression
+## Stars → tokens (BSC Testnet) 🪙
 
-- 10 stages; a stage unlocks once the previous one is cleared.
-- Stars, best endless score and item inventory persist via `PlayerPrefs`.
-- A **Reset Progress** button sits in the bottom-left of the menu.
+- Click **Connect Wallet** on the menu: MetaMask pops up, switches to BSC
+  Testnet and signs a login message.
+- Clear a level → the victory screen offers **Claim N RST** (1 star =
+  1 token, ERC-20). **Each level pays out exactly once per wallet** —
+  enforced by the smart contract; replaying a finished level never mints
+  again.
+- End an Endless run → claim the stars you kept (repeatable, with an
+  on-chain cooldown).
+- Balances are read through the **Moralis Web3 Data API** when a key is
+  configured, with a direct-chain fallback.
+- In the editor (non-WebGL) the whole flow runs as a **local simulation**
+  so you can test without a wallet.
+
+Full instructions — deploying `contracts/RagglerToken.sol`, faucet links,
+Moralis keys, WebGL build settings — are in
+**[BLOCKCHAIN_SETUP.md](BLOCKCHAIN_SETUP.md)**.
+
+## Building for WebGL
+
+Switch the platform to **Web/WebGL**, select the **Raggler** WebGL template
+in Player Settings (it ships the MetaMask/Moralis JavaScript), set
+compression to *Disabled* for simple hosting, and build. Details in
+[BLOCKCHAIN_SETUP.md](BLOCKCHAIN_SETUP.md).
 
 ## Project layout
 
 ```
 Assets/
-  Scenes/Main.unity        Empty scene — everything is built at runtime
+  Scenes/Main.unity            Empty scene — everything is built at runtime
+  Editor/GameSettingsCreator.cs  One-click settings asset creation
+  Plugins/WebGL/Web3.jslib     Unity -> browser JS bridge
+  WebGLTemplates/Raggler/      index.html + web3config.js + raggler-web3.js
   Scripts/
-    Bootstrap.cs           Creates camera, EventSystem, canvas, controller
-    GameConfig.cs          All tuning: card kinds, stage table, scoring rules
-    GameController.cs      Menu, HUD, popups, game flow, items, persistence
-    Board.cs               Layered layout generation + coverage (blocking)
-    Tray.cs                Clearing zone: grouping, triple detection, overflow
-    Card.cs                Card visuals + click forwarding
-    SpriteFactory.cs       Runtime-generated sprites (rounded rect, circle, star)
-    Ui.cs                  Small uGUI builder helpers
-    Tween.cs               Minimal coroutine tween helper
+    Bootstrap.cs               Creates camera, EventSystem, canvas, bridge, controller
+    GameSettings.cs            ScriptableObject: cards, background, levels, endless
+    GameConfig.cs              Settings loader + engine constants
+    GameController.cs          Menu, HUD, popups, game flow, items, claims
+    Board.cs                   Layered layout generation + coverage (blocking)
+    Tray.cs                    Clearing zone: grouping, triple detection, overflow
+    Card.cs                    Card visuals (sprite or placeholder) + clicks
+    Web3Bridge.cs              MetaMask/Moralis bridge + editor simulation
+    SpriteFactory.cs           Runtime-generated sprites (rounded rect, circle, star)
+    Ui.cs                      Small uGUI builder helpers
+    Tween.cs                   Minimal coroutine tween helper
+contracts/RagglerToken.sol     ERC-20 + one-shot level claims + endless claims
+BLOCKCHAIN_SETUP.md            Deploy & configure guide (BSC Testnet, Moralis)
 ```
-
-## Tuning
-
-Everything lives in `GameConfig.cs`: stage sizes/layers/kinds, star time
-thresholds, tray capacity, item caps, score values, endless difficulty curve.
-Swap the runtime placeholder art by giving `Card.Create` real sprites.

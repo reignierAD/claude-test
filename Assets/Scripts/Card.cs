@@ -24,6 +24,7 @@ public class Card : MonoBehaviour
 
     Image _icon;
     Image _iconRim;
+    Image _highlight;
     Text _label;
     GameObject _shade;
 
@@ -62,10 +63,10 @@ public class Card : MonoBehaviour
         card._icon.raycastTarget = false;
 
         var hlRt = Ui.Rect("Highlight", rt, new Vector2(16, 16), new Vector2(-12, 26));
-        var hl = hlRt.gameObject.AddComponent<Image>();
-        hl.sprite = SpriteFactory.Circle;
-        hl.color = new Color(1f, 1f, 1f, 0.55f);
-        hl.raycastTarget = false;
+        card._highlight = hlRt.gameObject.AddComponent<Image>();
+        card._highlight.sprite = SpriteFactory.Circle;
+        card._highlight.color = new Color(1f, 1f, 1f, 0.55f);
+        card._highlight.raycastTarget = false;
 
         card._label = Ui.Label("Name", rt, "", 17, new Color(0.45f, 0.30f, 0.15f),
             new Vector2(0, -36), new Vector2(s, 24));
@@ -84,15 +85,41 @@ public class Card : MonoBehaviour
         return card;
     }
 
-    /// <summary>Re-applies kind color and name (used after a Refresh item shuffles types).</summary>
+    /// <summary>
+    /// Re-applies the kind's picture (or placeholder color) and name. Called
+    /// on creation and after a Refresh item shuffles types.
+    /// </summary>
     public void RefreshVisual()
     {
-        var kind = GameConfig.Kinds[typeIndex];
-        _icon.color = kind.color;
-        Color rim = Color.Lerp(kind.color, Color.black, 0.38f);
-        rim.a = 1f;
-        _iconRim.color = rim;
-        _label.text = kind.name;
+        var kind = GameConfig.S.cardKinds[typeIndex];
+        bool hasSprite = kind.sprite != null;
+        var iconRt = (RectTransform)_icon.transform;
+
+        _iconRim.gameObject.SetActive(!hasSprite);
+        _highlight.gameObject.SetActive(!hasSprite);
+
+        if (hasSprite)
+        {
+            _icon.sprite = kind.sprite;
+            _icon.color = Color.white;
+            _icon.preserveAspect = true;
+            iconRt.sizeDelta = new Vector2(86, 86);
+            iconRt.anchoredPosition = new Vector2(0, 10);
+        }
+        else
+        {
+            _icon.sprite = SpriteFactory.Circle;
+            _icon.color = kind.color;
+            _icon.preserveAspect = false;
+            iconRt.sizeDelta = new Vector2(58, 58);
+            iconRt.anchoredPosition = new Vector2(0, 12);
+
+            Color rim = Color.Lerp(kind.color, Color.black, 0.38f);
+            rim.a = 1f;
+            _iconRim.color = rim;
+        }
+
+        _label.text = kind.cardName;
     }
 
     public void SetBlocked(bool blocked)

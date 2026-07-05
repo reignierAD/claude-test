@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes">
+  <title>Raggler's Challenge</title>
+  <style>
+    html, body { margin: 0; padding: 0; width: 100%; height: 100%; background: #fff3e0; overflow: hidden; }
+    #unity-canvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #fff3e0; }
+    #loading {
+      position: fixed; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 14px;
+      font-family: "Segoe UI", Arial, sans-serif; color: #73492a; background: #fff3e0;
+      transition: opacity 0.4s; z-index: 10;
+    }
+    #loading .bar { width: 260px; height: 14px; background: #ffe0b8; border-radius: 7px; overflow: hidden; }
+    #loading .bar > div { width: 0%; height: 100%; background: #ee7350; border-radius: 7px; transition: width 0.15s; }
+  </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+  <script src="web3config.js"></script>
+  <script src="raggler-web3.js"></script>
+</head>
+<body>
+  <div id="loading">
+    <h2>Raggler's Challenge</h2>
+    <div class="bar"><div id="loading-fill"></div></div>
+    <div>Loading...</div>
+  </div>
+  <canvas id="unity-canvas" tabindex="-1"></canvas>
+
+  <script src="Build/{{{ LOADER_FILENAME }}}"></script>
+  <script>
+    createUnityInstance(document.querySelector("#unity-canvas"), {
+      arguments: [],
+      dataUrl: "Build/{{{ DATA_FILENAME }}}",
+      frameworkUrl: "Build/{{{ FRAMEWORK_FILENAME }}}",
+      codeUrl: "Build/{{{ CODE_FILENAME }}}",
+      streamingAssetsUrl: "StreamingAssets",
+      companyName: {{{ JSON.stringify(COMPANY_NAME) }}},
+      productName: {{{ JSON.stringify(PRODUCT_NAME) }}},
+      productVersion: {{{ JSON.stringify(PRODUCT_VERSION) }}}
+    }, function (progress) {
+      var fill = document.getElementById("loading-fill");
+      if (fill) fill.style.width = Math.round(progress * 100) + "%";
+    }).then(function (unityInstance) {
+      window.ragglerUnityInstance = unityInstance;
+      var loading = document.getElementById("loading");
+      if (loading) { loading.style.opacity = "0"; setTimeout(function () { loading.remove(); }, 450); }
+    }).catch(function (message) {
+      alert(message);
+    });
+  </script>
+</body>
+</html>

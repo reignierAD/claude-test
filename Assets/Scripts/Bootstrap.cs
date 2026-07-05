@@ -22,7 +22,7 @@ public static class Bootstrap
             camGo.tag = "MainCamera";
             var cam = camGo.AddComponent<Camera>();
             cam.clearFlags = CameraClearFlags.SolidColor;
-            cam.backgroundColor = new Color(1.00f, 0.95f, 0.86f);
+            cam.backgroundColor = GameConfig.S.backgroundColor;
             cam.orthographic = true;
             camGo.AddComponent<AudioListener>();
         }
@@ -42,6 +42,11 @@ public static class Bootstrap
         scaler.referenceResolution = new Vector2(1600f, 900f);
         scaler.matchWidthOrHeight = 0.5f;
         canvasGo.AddComponent<GraphicRaycaster>();
+
+        // web3 bridge — must exist (and keep its exact name) before the
+        // controller builds any wallet UI; JS finds it via SendMessage
+        var web3Go = new GameObject("Web3Bridge");
+        web3Go.AddComponent<Web3Bridge>();
 
         var controllerGo = new GameObject("GameController");
         var controller = controllerGo.AddComponent<GameController>();

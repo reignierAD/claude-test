@@ -4,8 +4,9 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Orchestrates the whole game: menu, HUD, gameplay rules, items, scoring,
-/// stage progression, Endless mode and persistence. All UI is built from
-/// code — the project needs no prefabs or imported assets.
+/// level progression, Endless mode, persistence and the Web3 token flow.
+/// All UI is built from code; designer data comes from the GameSettings
+/// asset (see GameConfig.S).
 /// </summary>
 public class GameController : MonoBehaviour
 {
@@ -20,6 +21,7 @@ public class GameController : MonoBehaviour
     static readonly Color StarGold = new Color(1.00f, 0.78f, 0.15f);
     static readonly Color StarDim = new Color(0.62f, 0.56f, 0.50f, 0.55f);
     static readonly Color ButtonRose = new Color(0.95f, 0.55f, 0.50f);
+    static readonly Color WalletTeal = new Color(0.25f, 0.62f, 0.58f);
 
     // ---- scene refs ----
     RectTransform _canvasRoot;
@@ -38,9 +40,10 @@ public class GameController : MonoBehaviour
     readonly System.Random _rng = new System.Random();
 
     State _state = State.Menu;
-    GameConfig.StageDef _currentDef;
-    int _stageIndex;        // 0-based; -1 while in Endless mode
+    GameSettings.LevelDef _currentDef;
+    int _levelIndex;        // 0-based; -1 while in Endless mode
     int _endlessRound;
+    int _endlessFinalStars;
     float _elapsed;
     int _score;
     int _combo;
@@ -57,6 +60,10 @@ public class GameController : MonoBehaviour
     Text _removeUsed, _undoUsed, _refreshUsed;
     float _toastUntil;
 
+    // ---- claim UI (inside result popups) ----
+    Button _claimButton;
+    Text _claimStatusText;
+
     // =====================================================================
     // setup
     // =====================================================================
@@ -68,6 +75,16 @@ public class GameController : MonoBehaviour
         BuildBackground();
         BuildGameScreen();
         _tray.onTriple = HandleTriple;
+
+        var w3 = Web3Bridge.Instance;
+        if (w3 != null)
+        {
+            w3.onStateChanged += OnWeb3StateChanged;
+            w3.onClaimOk += OnWeb3ClaimOk;
+            w3.onClaimError += OnWeb3ClaimError;
+            w3.onError += msg => Toast(msg);
+        }
+
         ShowMenu();
     }
 
@@ -75,8 +92,16 @@ public class GameController : MonoBehaviour
     {
         var bg = Ui.Stretch("Background", _canvasRoot);
         var img = bg.gameObject.AddComponent<Image>();
-        img.color = Cream;
+        var s = GameConfig.S;
 
+        if (s.backgroundSprite != null)
+        {
+            img.sprite = s.backgroundSprite;
+            img.color = Color.white;
+            return;
+        }
+
+        img.color = s.backgroundColor;
         // soft decorative blobs, roughly matching the event screen's warm look
         Deco(bg, new Vector2(-620, 380), 500, new Color(1f, 0.80f, 0.55f, 0.35f));
         Deco(bg, new Vector2(660, -400), 640, new Color(1f, 0.72f, 0.45f, 0.30f));
@@ -105,46 +130,48 @@ public class GameController : MonoBehaviour
         if (_menuScreen != null) Destroy(_menuScreen.gameObject);
 
         _menuScreen = Ui.Stretch("Menu", _canvasRoot);
+        int levelCount = GameConfig.S.LevelCount;
 
         Ui.Label("Title", _menuScreen, "Raggler's Challenge", 68, DeepOrange,
-            new Vector2(0, 330), new Vector2(1200, 90), anchor: new Vector2(0.5f, 0.5f));
+            new Vector2(0, 330), new Vector2(1200, 90));
         Ui.Label("Subtitle", _menuScreen, "Raggler made off with everyone's gifts! Match three to take them back!",
             26, Brown, new Vector2(0, 262), new Vector2(1200, 40), style: FontStyle.Normal);
 
         // total stars, top right
         int total = 0;
-        for (int i = 0; i < GameConfig.Stages.Length; i++) total += StageStars(i);
+        for (int i = 0; i < levelCount; i++) total += LevelStars(i);
         var starRt = Ui.Rect("TotalStar", _menuScreen, new Vector2(44, 44), new Vector2(-160, -50), new Vector2(1f, 1f));
         var starImg = starRt.gameObject.AddComponent<Image>();
         starImg.sprite = SpriteFactory.Star;
         starImg.color = StarGold;
         starImg.raycastTarget = false;
-        Ui.Label("TotalStars", _menuScreen, total + "/" + (GameConfig.Stages.Length * 3), 30, Brown,
+        Ui.Label("TotalStars", _menuScreen, total + "/" + (levelCount * 3), 30, Brown,
             new Vector2(-95, -50), new Vector2(120, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
 
         // help
         Ui.MakeButton("Help", _menuScreen, "?", new Vector2(56, 56), new Vector2(-50, -50),
             Orange, Color.white, 32, ShowHelpPopup, new Vector2(1f, 1f));
 
-        // stage grid
-        for (int i = 0; i < GameConfig.Stages.Length; i++)
+        // level grid (5 per row)
+        int rows = (levelCount + 4) / 5;
+        for (int i = 0; i < levelCount; i++)
         {
             int idx = i;
             float x = (i % 5 - 2) * 190f;
             float y = 110f - (i / 5) * 205f;
-            bool unlocked = idx == 0 || StageStars(idx - 1) > 0;
+            bool unlocked = idx == 0 || LevelStars(idx - 1) > 0;
 
-            var btn = Ui.MakeButton("Stage" + (idx + 1), _menuScreen, "",
+            var btn = Ui.MakeButton("Level" + (idx + 1), _menuScreen, "",
                 new Vector2(160, 160), new Vector2(x, y),
                 unlocked ? Color.white : new Color(0.85f, 0.80f, 0.74f),
-                Brown, 30, () => StartStage(idx));
+                Brown, 30, () => StartLevel(idx));
             btn.interactable = unlocked;
 
             Ui.Label("Num", btn.transform, (idx + 1).ToString(), 52,
                 unlocked ? DeepOrange : new Color(0.6f, 0.55f, 0.5f),
                 new Vector2(0, 18), new Vector2(160, 60));
 
-            int earned = StageStars(idx);
+            int earned = LevelStars(idx);
             for (int s = 0; s < 3; s++)
             {
                 var srt = Ui.Rect("S" + s, btn.transform, new Vector2(34, 34), new Vector2((s - 1) * 38f, -44));
@@ -153,18 +180,57 @@ public class GameController : MonoBehaviour
                 simg.color = s < earned ? StarGold : StarDim;
                 simg.raycastTarget = false;
             }
+
+            // claimed marker (token already collected for this level)
+            var w3c = Web3Bridge.Instance;
+            if (w3c != null && w3c.Connected && w3c.IsLevelClaimed(idx + 1))
+            {
+                Ui.Label("Claimed", btn.transform, "RST claimed", 16, WalletTeal,
+                    new Vector2(0, -68), new Vector2(160, 24), style: FontStyle.Normal);
+            }
         }
 
         // endless mode
-        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(360, 110), new Vector2(0, -330),
+        float endlessY = 110f - (rows - 1) * 205f - 235f;
+        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(420, 110), new Vector2(0, endlessY),
             ButtonRose, Color.white, 30, StartEndless);
-        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 16), new Vector2(360, 44));
-        Ui.Label("EndlessBest", endless.transform, "Best Score: " + PlayerPrefs.GetInt("endless_best", 0),
-            22, new Color(1f, 0.93f, 0.85f), new Vector2(0, -24), new Vector2(360, 30), style: FontStyle.Normal);
+        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 16), new Vector2(420, 44));
+        Ui.Label("EndlessBest", endless.transform,
+            "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
+            20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -24), new Vector2(420, 30), style: FontStyle.Normal);
+
+        // wallet corner (bottom right)
+        BuildWalletCorner();
 
         // reset progress (handy while testing)
         Ui.MakeButton("Reset", _menuScreen, "Reset Progress", new Vector2(190, 46), new Vector2(120, 45),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 20, ResetProgress, new Vector2(0f, 0f));
+    }
+
+    void BuildWalletCorner()
+    {
+        var w3 = Web3Bridge.Instance;
+        if (w3 == null) return;
+
+        if (!w3.Connected)
+        {
+            Ui.MakeButton("Connect", _menuScreen, "Connect Wallet", new Vector2(240, 60), new Vector2(-150, 50),
+                WalletTeal, Color.white, 24, () => w3.Connect(), new Vector2(1f, 0f));
+            if (w3.Simulated)
+            {
+                Ui.Label("SimNote", _menuScreen, "(simulated outside WebGL builds)", 16,
+                    new Color(0.55f, 0.50f, 0.45f), new Vector2(-150, 12), new Vector2(300, 24),
+                    style: FontStyle.Normal, anchor: new Vector2(1f, 0f));
+            }
+        }
+        else
+        {
+            var panel = Ui.Rect("Wallet", _menuScreen, new Vector2(300, 78), new Vector2(-170, 60), new Vector2(1f, 0f));
+            Ui.Panel(panel, new Color(1f, 1f, 1f, 0.85f));
+            Ui.Label("Addr", panel, w3.ShortAddress + (w3.Simulated ? "  (sim)" : ""), 20, Brown,
+                new Vector2(0, 16), new Vector2(280, 26), style: FontStyle.Normal);
+            Ui.Label("Bal", panel, w3.Balance + " RST", 26, WalletTeal, new Vector2(0, -14), new Vector2(280, 32));
+        }
     }
 
     void ResetProgress()
@@ -183,10 +249,10 @@ public class GameController : MonoBehaviour
     {
         _gameScreen = Ui.Stretch("Game", _canvasRoot);
 
-        // back + stage name (top left)
+        // back + level name (top left)
         Ui.MakeButton("Back", _gameScreen, "<", new Vector2(60, 60), new Vector2(55, -55),
             Orange, Color.white, 34, ExitToMenu, new Vector2(0f, 1f));
-        _stageText = Ui.Label("Stage", _gameScreen, "Stage 1", 36, Brown,
+        _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 36, Brown,
             new Vector2(210, -55), new Vector2(300, 50), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f));
 
         // timer + stars (top center)
@@ -258,21 +324,21 @@ public class GameController : MonoBehaviour
     // session control
     // =====================================================================
 
-    void StartStage(int index)
+    void StartLevel(int index)
     {
-        _stageIndex = index;
+        _levelIndex = index;
         _endlessRound = 0;
-        BeginSession(GameConfig.Stages[index]);
+        BeginSession(GameConfig.S.GetLevel(index));
     }
 
     void StartEndless()
     {
-        _stageIndex = -1;
+        _levelIndex = -1;
         _endlessRound = 1;
-        BeginSession(GameConfig.EndlessRound(1));
+        BeginSession(GameConfig.S.GetEndlessRound(_rng));
     }
 
-    void BeginSession(GameConfig.StageDef def)
+    void BeginSession(GameSettings.LevelDef def)
     {
         ClosePopup();
         if (_menuScreen != null) Destroy(_menuScreen.gameObject);
@@ -283,6 +349,7 @@ public class GameController : MonoBehaviour
         _score = 0;
         _combo = 0;
         _lastMatchTime = -999f;
+        _endlessFinalStars = 0;
         _usedRemove = _usedUndo = _usedRefresh = 0;
 
         DealBoard(def);
@@ -290,7 +357,7 @@ public class GameController : MonoBehaviour
         UpdateHud();
     }
 
-    void DealBoard(GameConfig.StageDef def)
+    void DealBoard(GameSettings.LevelDef def)
     {
         _currentDef = def;
         _board.Generate(_boardRoot, def, _rng, OnCardClicked);
@@ -354,7 +421,7 @@ public class GameController : MonoBehaviour
 
         if (!survived)
         {
-            Lose();
+            Overflowed();
             return;
         }
         CheckCleared();
@@ -376,23 +443,23 @@ public class GameController : MonoBehaviour
     {
         if (_board.Count > 0 || _held.Count > 0 || _tray.cards.Count > 0) return;
 
-        if (_stageIndex >= 0) WinStage();
+        if (_levelIndex >= 0) WinLevel();
         else AdvanceEndless();
     }
 
-    void WinStage()
+    void WinLevel()
     {
         _state = State.Finished;
 
-        var def = GameConfig.Stages[_stageIndex];
-        int stars = _elapsed <= def.time3 ? 3 : _elapsed <= def.time2 ? 2 : 1;
-        int bonus = Mathf.Max(0, Mathf.RoundToInt(def.time2 - _elapsed)) * GameConfig.TimeBonusPerSecond;
+        var def = _currentDef;
+        int stars = _elapsed <= def.threeStarTime ? 3 : _elapsed <= def.twoStarTime ? 2 : 1;
+        int bonus = Mathf.Max(0, Mathf.RoundToInt(def.twoStarTime - _elapsed)) * GameConfig.TimeBonusPerSecond;
         _score += bonus;
 
-        string key = "stars_" + (_stageIndex + 1);
+        string key = "stars_" + (_levelIndex + 1);
         if (stars > PlayerPrefs.GetInt(key, 0)) PlayerPrefs.SetInt(key, stars);
 
-        // small item reward for clearing a stage
+        // small item reward for clearing a level
         _invRemove++;
         _invUndo++;
         _invRefresh++;
@@ -408,29 +475,46 @@ public class GameController : MonoBehaviour
         Toast("Round " + _endlessRound + " clear!  +" + bonus);
         _endlessRound++;
         _undoStack.Clear();
-        DealBoard(GameConfig.EndlessRound(_endlessRound));
+        DealBoard(GameConfig.S.GetEndlessRound(_rng));
         UpdateHud();
     }
 
-    void Lose()
+    /// <summary>Stars still lit in Endless mode at the current elapsed time.</summary>
+    int EndlessStarsRemaining()
     {
-        _state = State.Finished;
+        var s = GameConfig.S;
+        if (_elapsed < s.endlessStar3Time) return 3;
+        if (_elapsed < s.endlessStar2Time) return 2;
+        return 1;
+    }
 
-        if (_stageIndex < 0)
+    void Overflowed()
+    {
+        if (_levelIndex < 0)
         {
-            int best = PlayerPrefs.GetInt("endless_best", 0);
-            if (_score > best)
-            {
-                best = _score;
-                PlayerPrefs.SetInt("endless_best", best);
-                PlayerPrefs.Save();
-            }
-            ShowEndlessOverPopup(best);
+            EndEndlessRun(false);
         }
         else
         {
+            _state = State.Finished;
             ShowLosePopup();
         }
+    }
+
+    void EndEndlessRun(bool timeUp)
+    {
+        _state = State.Finished;
+        _endlessFinalStars = EndlessStarsRemaining();
+
+        int best = PlayerPrefs.GetInt("endless_best", 0);
+        if (_score > best)
+        {
+            best = _score;
+            PlayerPrefs.SetInt("endless_best", best);
+            PlayerPrefs.Save();
+        }
+
+        ShowEndlessOverPopup(timeUp, best);
     }
 
     // =====================================================================
@@ -518,7 +602,7 @@ public class GameController : MonoBehaviour
     }
 
     // =====================================================================
-    // HUD / popups
+    // HUD
     // =====================================================================
 
     void Update()
@@ -526,6 +610,11 @@ public class GameController : MonoBehaviour
         if (_state == State.Playing)
         {
             _elapsed += Time.deltaTime;
+            if (_levelIndex < 0 && GameConfig.S.endlessDuration > 0f && _elapsed >= GameConfig.S.endlessDuration)
+            {
+                EndEndlessRun(true);
+                return;
+            }
             UpdateHud();
         }
         if (_toastText != null && _toastText.enabled && Time.unscaledTime > _toastUntil)
@@ -534,13 +623,13 @@ public class GameController : MonoBehaviour
 
     void UpdateHud()
     {
-        _timerText.text = FormatTime(_elapsed);
         _scoreText.text = "Score  " + _score;
 
-        if (_stageIndex >= 0)
+        if (_levelIndex >= 0)
         {
-            _stageText.text = "Stage " + (_stageIndex + 1);
-            int would = _elapsed <= _currentDef.time3 ? 3 : _elapsed <= _currentDef.time2 ? 2 : 1;
+            _stageText.text = "Level " + (_levelIndex + 1);
+            _timerText.text = FormatTime(_elapsed);
+            int would = _elapsed <= _currentDef.threeStarTime ? 3 : _elapsed <= _currentDef.twoStarTime ? 2 : 1;
             for (int s = 0; s < 3; s++)
             {
                 _hudStars[s].gameObject.SetActive(true);
@@ -550,7 +639,14 @@ public class GameController : MonoBehaviour
         else
         {
             _stageText.text = "Endless  ·  Round " + _endlessRound;
-            for (int s = 0; s < 3; s++) _hudStars[s].gameObject.SetActive(false);
+            float remain = Mathf.Max(0f, GameConfig.S.endlessDuration - _elapsed);
+            _timerText.text = FormatTime(remain);
+            int stars = EndlessStarsRemaining();
+            for (int s = 0; s < 3; s++)
+            {
+                _hudStars[s].gameObject.SetActive(true);
+                _hudStars[s].color = s < stars ? StarGold : StarDim;
+            }
         }
 
         _removeInv.text = _invRemove.ToString();
@@ -566,9 +662,10 @@ public class GameController : MonoBehaviour
 
     void Toast(string message)
     {
+        if (_toastText == null) return;
         _toastText.text = message;
         _toastText.enabled = true;
-        _toastUntil = Time.unscaledTime + 1.6f;
+        _toastUntil = Time.unscaledTime + 1.8f;
     }
 
     static string FormatTime(float t)
@@ -577,6 +674,77 @@ public class GameController : MonoBehaviour
         return (total / 60).ToString("00") + ":" + (total % 60).ToString("00");
     }
 
+    // =====================================================================
+    // web3 events
+    // =====================================================================
+
+    void OnWeb3StateChanged()
+    {
+        if (_state == State.Menu) ShowMenu();
+    }
+
+    void OnWeb3ClaimOk(string payload)
+    {
+        if (_claimStatusText != null)
+            _claimStatusText.text = "Claimed! Tokens minted to your wallet.";
+        Toast("Star tokens claimed!");
+    }
+
+    void OnWeb3ClaimError(string message)
+    {
+        if (_claimStatusText != null)
+            _claimStatusText.text = "Claim failed: " + message;
+        if (_claimButton != null)
+            _claimButton.interactable = true;
+    }
+
+    /// <summary>
+    /// Claim row inside result popups. levelOneBased = -1 for Endless.
+    /// Levels can only ever be claimed once (enforced by the contract);
+    /// Endless pays out the stars remaining at the end of each run.
+    /// </summary>
+    void AddClaimSection(RectTransform panel, float labelY, float buttonY, int levelOneBased, int stars)
+    {
+        var w3 = Web3Bridge.Instance;
+        if (w3 == null) return;
+
+        if (!w3.Connected)
+        {
+            Ui.Label("ClaimHint", panel, "Connect your wallet to claim star tokens (1 star = 1 RST).", 22,
+                new Color(0.55f, 0.45f, 0.35f), new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+            Ui.MakeButton("ConnectPopup", panel, "Connect Wallet", new Vector2(240, 56), new Vector2(0, buttonY),
+                WalletTeal, Color.white, 24, () => w3.Connect());
+            return;
+        }
+
+        if (levelOneBased > 0 && w3.IsLevelClaimed(levelOneBased))
+        {
+            Ui.Label("ClaimDone", panel, "Reward already claimed — finished levels give no more tokens.", 22,
+                WalletTeal, new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+            return;
+        }
+
+        if (stars < 1) return;
+
+        _claimStatusText = Ui.Label("ClaimStatus", panel, "1 star = 1 RST on BSC Testnet", 20,
+            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+
+        int lv = levelOneBased;
+        int st = stars;
+        _claimButton = Ui.MakeButton("Claim", panel, "Claim " + stars + " RST", new Vector2(240, 56),
+            new Vector2(0, buttonY), WalletTeal, Color.white, 24, () =>
+            {
+                if (_claimButton != null) _claimButton.interactable = false;
+                if (_claimStatusText != null) _claimStatusText.text = "Confirm the transaction in MetaMask...";
+                if (lv > 0) Web3Bridge.Instance.ClaimLevel(lv, st);
+                else Web3Bridge.Instance.ClaimEndless(st);
+            });
+    }
+
+    // =====================================================================
+    // popups
+    // =====================================================================
+
     RectTransform BuildPopup(string title, float height)
     {
         ClosePopup();
@@ -584,7 +752,7 @@ public class GameController : MonoBehaviour
         var dim = _popupLayer.gameObject.AddComponent<Image>();
         dim.color = new Color(0f, 0f, 0f, 0.55f); // also blocks clicks behind it
 
-        var panel = Ui.Rect("Panel", _popupLayer, new Vector2(680, height), Vector2.zero);
+        var panel = Ui.Rect("Panel", _popupLayer, new Vector2(700, height), Vector2.zero);
         Ui.Panel(panel, Cream);
         Ui.Label("Title", panel, title, 46, DeepOrange,
             new Vector2(0, height * 0.5f - 60f), new Vector2(640, 60));
@@ -595,37 +763,41 @@ public class GameController : MonoBehaviour
     {
         if (_popupLayer != null) Destroy(_popupLayer.gameObject);
         _popupLayer = null;
+        _claimButton = null;
+        _claimStatusText = null;
     }
 
     void ShowWinPopup(int stars, int timeBonus)
     {
-        var panel = BuildPopup("Stage Clear!", 520);
+        var panel = BuildPopup("Level Clear!", 640);
 
         for (int s = 0; s < 3; s++)
         {
-            var srt = Ui.Rect("Star" + s, panel, new Vector2(86, 86), new Vector2((s - 1) * 100f, 90f));
+            var srt = Ui.Rect("Star" + s, panel, new Vector2(86, 86), new Vector2((s - 1) * 100f, 160f));
             var img = srt.gameObject.AddComponent<Image>();
             img.sprite = SpriteFactory.Star;
             img.color = s < stars ? StarGold : StarDim;
             img.raycastTarget = false;
         }
 
-        Ui.Label("Time", panel, "Time  " + FormatTime(_elapsed), 30, Brown,
-            new Vector2(0, 10), new Vector2(600, 40), style: FontStyle.Normal);
-        Ui.Label("Score", panel, "Score  " + _score + "   (time bonus +" + timeBonus + ")", 30, Brown,
-            new Vector2(0, -35), new Vector2(600, 40), style: FontStyle.Normal);
-        Ui.Label("Reward", panel, "Reward: +1 Remove, +1 Undo, +1 Refresh", 24,
-            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, -80), new Vector2(600, 34), style: FontStyle.Normal);
+        Ui.Label("Time", panel, "Time  " + FormatTime(_elapsed), 28, Brown,
+            new Vector2(0, 80), new Vector2(600, 36), style: FontStyle.Normal);
+        Ui.Label("Score", panel, "Score  " + _score + "   (time bonus +" + timeBonus + ")", 28, Brown,
+            new Vector2(0, 40), new Vector2(600, 36), style: FontStyle.Normal);
+        Ui.Label("Reward", panel, "Items: +1 Remove, +1 Undo, +1 Refresh", 22,
+            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, 2), new Vector2(600, 30), style: FontStyle.Normal);
 
-        int replayIndex = _stageIndex;
-        Ui.MakeButton("Menu", panel, "Menu", new Vector2(170, 66), new Vector2(-210, -180),
+        AddClaimSection(panel, -50f, -110f, _levelIndex + 1, stars);
+
+        int replayIndex = _levelIndex;
+        Ui.MakeButton("Menu", panel, "Menu", new Vector2(170, 66), new Vector2(-210, -250),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, ExitToMenu);
-        Ui.MakeButton("Replay", panel, "Replay", new Vector2(170, 66), new Vector2(0, -180),
-            Orange, Color.white, 26, () => StartStage(replayIndex));
-        if (_stageIndex < GameConfig.Stages.Length - 1)
+        Ui.MakeButton("Replay", panel, "Replay", new Vector2(170, 66), new Vector2(0, -250),
+            Orange, Color.white, 26, () => StartLevel(replayIndex));
+        if (_levelIndex < GameConfig.S.LevelCount - 1)
         {
-            Ui.MakeButton("Next", panel, "Next", new Vector2(170, 66), new Vector2(210, -180),
-                ButtonRose, Color.white, 26, () => StartStage(replayIndex + 1));
+            Ui.MakeButton("Next", panel, "Next", new Vector2(170, 66), new Vector2(210, -250),
+                ButtonRose, Color.white, 26, () => StartLevel(replayIndex + 1));
         }
     }
 
@@ -635,42 +807,59 @@ public class GameController : MonoBehaviour
         Ui.Label("Msg", panel, "The clearing zone overflowed!\nRaggler keeps the gifts... for now.", 28, Brown,
             new Vector2(0, 30), new Vector2(600, 90), style: FontStyle.Normal);
 
-        int replayIndex = _stageIndex;
+        int replayIndex = _levelIndex;
         Ui.MakeButton("Menu", panel, "Menu", new Vector2(190, 66), new Vector2(-110, -120),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, ExitToMenu);
         Ui.MakeButton("Retry", panel, "Retry", new Vector2(190, 66), new Vector2(110, -120),
-            ButtonRose, Color.white, 26, () => StartStage(replayIndex));
+            ButtonRose, Color.white, 26, () => StartLevel(replayIndex));
     }
 
-    void ShowEndlessOverPopup(int best)
+    void ShowEndlessOverPopup(bool timeUp, int best)
     {
-        var panel = BuildPopup("Endless Over", 440);
-        Ui.Label("Rounds", panel, "Rounds survived: " + _endlessRound, 30, Brown,
-            new Vector2(0, 55), new Vector2(600, 40), style: FontStyle.Normal);
-        Ui.Label("Score", panel, "Score  " + _score, 34, DeepOrange,
-            new Vector2(0, 5), new Vector2(600, 44));
-        Ui.Label("Best", panel, "Best  " + best, 26, Brown,
-            new Vector2(0, -40), new Vector2(600, 36), style: FontStyle.Normal);
+        var panel = BuildPopup(timeUp ? "Time's Up!" : "Endless Over", 620);
 
-        Ui.MakeButton("Menu", panel, "Menu", new Vector2(190, 66), new Vector2(-110, -140),
+        Ui.Label("Rounds", panel, "Rounds cleared: " + (_endlessRound - 1), 28, Brown,
+            new Vector2(0, 170), new Vector2(600, 36), style: FontStyle.Normal);
+        Ui.Label("Score", panel, "Score  " + _score, 34, DeepOrange,
+            new Vector2(0, 125), new Vector2(600, 44));
+        Ui.Label("Best", panel, "Best  " + best, 24, Brown,
+            new Vector2(0, 82), new Vector2(600, 32), style: FontStyle.Normal);
+
+        Ui.Label("StarsKept", panel, "Stars kept before the timer ran out:", 24, Brown,
+            new Vector2(0, 35), new Vector2(600, 32), style: FontStyle.Normal);
+        for (int s = 0; s < 3; s++)
+        {
+            var srt = Ui.Rect("KStar" + s, panel, new Vector2(56, 56), new Vector2((s - 1) * 66f, -15f));
+            var img = srt.gameObject.AddComponent<Image>();
+            img.sprite = SpriteFactory.Star;
+            img.color = s < _endlessFinalStars ? StarGold : StarDim;
+            img.raycastTarget = false;
+        }
+
+        AddClaimSection(panel, -70f, -130f, -1, _endlessFinalStars);
+
+        Ui.MakeButton("Menu", panel, "Menu", new Vector2(190, 66), new Vector2(-110, -240),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, ExitToMenu);
-        Ui.MakeButton("Retry", panel, "Retry", new Vector2(190, 66), new Vector2(110, -140),
+        Ui.MakeButton("Retry", panel, "Retry", new Vector2(190, 66), new Vector2(110, -240),
             ButtonRose, Color.white, 26, StartEndless);
     }
 
     void ShowHelpPopup()
     {
-        var panel = BuildPopup("Notice", 560);
+        var panel = BuildPopup("Notice", 620);
         string rules =
             "Raggler made off with everyone's gifts!\nDefeat him and take back the gifts!\n\n" +
             "1. Tap the cards to place them in the clearing zone below.\n" +
             "2. Match three identical cards to clear them automatically.\n     Clear all cards on the screen to win.\n" +
             "3. The clearing zone can hold up to 7 cards. Go over, and you lose!\n" +
             "4. You may use items: Remove Card, Undo Card, and Refresh Card.\n" +
-            "5. The rating for each stage is based on how fast you complete it!";
-        Ui.Label("Rules", panel, rules, 24, Brown, new Vector2(0, 20), new Vector2(600, 380),
+            "5. The rating for each level is based on how fast you complete it!\n\n" +
+            "Tokens: connect MetaMask to convert stars into RST (1 star = 1 token).\n" +
+            "Each level pays out once. In Endless, you keep the stars still lit\n" +
+            "when the timer runs out.";
+        Ui.Label("Rules", panel, rules, 23, Brown, new Vector2(0, 0), new Vector2(620, 440),
             TextAnchor.UpperLeft, FontStyle.Normal);
-        Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -220),
+        Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -250),
             Orange, Color.white, 26, ClosePopup);
     }
 
@@ -678,7 +867,7 @@ public class GameController : MonoBehaviour
     // persistence
     // =====================================================================
 
-    static int StageStars(int index)
+    static int LevelStars(int index)
     {
         return PlayerPrefs.GetInt("stars_" + (index + 1), 0);
     }
