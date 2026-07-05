@@ -34,11 +34,12 @@ in the Inspector — no code required:
   *Background Color*.
 - **Levels**: one list entry per level (add more entries = more levels).
   Each level sets its own **card varieties** (e.g. 3 kinds in level 1,
-  5 in level 2, ...), tile count, layer depth and the two star-time
-  thresholds.
+  5 in level 2, ...), tile count, layer depth, the two star-time
+  thresholds, and **Side Stack Cards** — the number of face-down cards in
+  each pile beside the clearing zone (0 = no piles).
 - **Endless Mode**: a **fixed** variety count and a tile-count range
-  (default 30–51 cards per board), plus the run timer and the times at
-  which stars burn out.
+  (default 30–51 cards per board), the side-pile size (default 10 per
+  side), plus the run timer and the times at which stars burn out.
 
 If no asset exists, the game silently uses built-in defaults identical to
 the shipped values.
@@ -49,7 +50,13 @@ the shipped values.
   Cards covered by a higher layer are darkened and can't be picked.
 - **Three identical cards** in the clearing zone clear automatically.
 - The clearing zone holds **7 cards max** — go over and you **lose**.
-- Clear every card on the board to win the level.
+- Some boards also have **face-down side piles** flanking the clearing
+  zone — only the front (face-up) card of each pile can be played, and
+  taking it flips the next one up.
+- Clear every card on the board (and the side piles) to win the level.
+- Quitting mid-run asks for confirmation, and clearing a level celebrates
+  with animated stars and confetti. Remaining power-ups are shown on the
+  main menu.
 
 ### Items (right panel)
 

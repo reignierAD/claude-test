@@ -43,16 +43,19 @@ public class GameSettings : ScriptableObject
         public float threeStarTime = 40f;
         [Tooltip("Finish under this many seconds for 2 stars (slower = 1 star).")]
         public float twoStarTime = 80f;
+        [Tooltip("Face-down cards in EACH side pile beside the clearing zone (0 = no piles).")]
+        public int sideStackCards = 0;
 
         public LevelDef() { }
 
-        public LevelDef(int tiles, int cardVarieties, int layers, float threeStarTime, float twoStarTime)
+        public LevelDef(int tiles, int cardVarieties, int layers, float threeStarTime, float twoStarTime, int sideStackCards = 0)
         {
             this.tiles = tiles;
             this.cardVarieties = cardVarieties;
             this.layers = layers;
             this.threeStarTime = threeStarTime;
             this.twoStarTime = twoStarTime;
+            this.sideStackCards = sideStackCards;
         }
     }
 
@@ -83,6 +86,8 @@ public class GameSettings : ScriptableObject
     public float endlessStar3Time = 60f;
     [Tooltip("After this many seconds the 2nd star is also lost (1 remains).")]
     public float endlessStar2Time = 120f;
+    [Tooltip("Face-down cards in EACH side pile beside the clearing zone during Endless.")]
+    public int endlessSideStackCards = 10;
 
     public int LevelCount => levels != null ? levels.Length : 0;
 
@@ -97,7 +102,7 @@ public class GameSettings : ScriptableObject
         int min = Mathf.Max(3, Mathf.Min(endlessMinTiles, endlessMaxTiles));
         int max = Mathf.Max(min, Mathf.Max(endlessMinTiles, endlessMaxTiles));
         int tiles = min + rng.Next(max - min + 1);
-        return new LevelDef(tiles, endlessVarieties, endlessLayers, 0f, 0f);
+        return new LevelDef(tiles, endlessVarieties, endlessLayers, 0f, 0f, endlessSideStackCards);
     }
 
     /// <summary>Fills the asset with the built-in Ragnarok-flavored defaults.</summary>
@@ -120,13 +125,13 @@ public class GameSettings : ScriptableObject
             new LevelDef( 9, 3, 2,  20f,  40f),
             new LevelDef(18, 5, 2,  30f,  60f),
             new LevelDef(24, 5, 3,  40f,  80f),
-            new LevelDef(30, 6, 3,  50f,  95f),
+            new LevelDef(30, 6, 3,  50f,  95f,  6),
             new LevelDef(39, 6, 3,  60f, 110f),
-            new LevelDef(48, 7, 4,  75f, 130f),
+            new LevelDef(48, 7, 4,  75f, 130f,  6),
             new LevelDef(57, 7, 4,  90f, 150f),
-            new LevelDef(66, 8, 4, 105f, 170f),
-            new LevelDef(78, 8, 5, 120f, 195f),
-            new LevelDef(90, 8, 5, 140f, 220f),
+            new LevelDef(66, 8, 4, 105f, 170f,  9),
+            new LevelDef(78, 8, 5, 120f, 195f,  9),
+            new LevelDef(90, 8, 5, 140f, 220f, 10),
         };
 
         backgroundColor = new Color(1.00f, 0.95f, 0.86f);
@@ -137,5 +142,6 @@ public class GameSettings : ScriptableObject
         endlessDuration = 180f;
         endlessStar3Time = 60f;
         endlessStar2Time = 120f;
+        endlessSideStackCards = 10;
     }
 }

@@ -16,12 +16,18 @@ public class Board
 
     public int Count => cards.Count;
 
-    public void Generate(RectTransform boardRoot, GameSettings.LevelDef level, System.Random rng, Action<Card> onClick)
+    /// <summary>
+    /// Deals the board. When <paramref name="presetBag"/> is given (side
+    /// stacks in play), those exact card types are used — the caller has
+    /// already balanced type counts to multiples of 3 across board+stacks.
+    /// </summary>
+    public void Generate(RectTransform boardRoot, GameSettings.LevelDef level, System.Random rng,
+        Action<Card> onClick, List<int> presetBag = null)
     {
         Clear();
 
         // sanitize designer input: multiples of 3, valid ranges
-        int tiles = Mathf.Max(3, (level.tiles + 2) / 3 * 3);
+        int tiles = presetBag != null ? presetBag.Count : Mathf.Max(3, (level.tiles + 2) / 3 * 3);
         int types = Mathf.Clamp(level.cardVarieties, 1, GameConfig.S.cardKinds.Length);
         int layers = Mathf.Clamp(level.layers, 1, 6);
 
@@ -32,13 +38,21 @@ public class Board
         int[] layerCounts = SplitAcrossLayers(tiles, layers);
 
         // type bag: triples of random kinds from the allowed pool
-        var bag = new List<int>();
-        for (int i = 0; i < tiles / 3; i++)
+        List<int> bag;
+        if (presetBag != null)
         {
-            int t = rng.Next(types);
-            bag.Add(t); bag.Add(t); bag.Add(t);
+            bag = presetBag;
         }
-        Shuffle(bag, rng);
+        else
+        {
+            bag = new List<int>();
+            for (int i = 0; i < tiles / 3; i++)
+            {
+                int t = rng.Next(types);
+                bag.Add(t); bag.Add(t); bag.Add(t);
+            }
+            Shuffle(bag, rng);
+        }
 
         int bagIndex = 0;
         for (int l = 0; l < layers; l++)

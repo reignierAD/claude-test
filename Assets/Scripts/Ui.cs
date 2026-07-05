@@ -66,7 +66,7 @@ public static class Ui
 
     public static Text Label(string name, Transform parent, string content, int fontSize, Color color,
         Vector2 pos, Vector2 size, TextAnchor align = TextAnchor.MiddleCenter,
-        FontStyle style = FontStyle.Bold, Vector2? anchor = null)
+        FontStyle style = FontStyle.Bold, Vector2? anchor = null, bool wrap = false)
     {
         var rt = Rect(name, parent, size, pos, anchor);
         var text = rt.gameObject.AddComponent<Text>();
@@ -76,7 +76,7 @@ public static class Ui
         text.fontStyle = style;
         text.color = color;
         text.alignment = align;
-        text.horizontalOverflow = HorizontalWrapMode.Overflow;
+        text.horizontalOverflow = wrap ? HorizontalWrapMode.Wrap : HorizontalWrapMode.Overflow;
         text.verticalOverflow = VerticalWrapMode.Overflow;
         text.raycastTarget = false;
         return text;

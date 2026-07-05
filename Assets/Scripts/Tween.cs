@@ -38,6 +38,38 @@ public class Tween : MonoBehaviour
         Runner.StartCoroutine(Runner.DelayRoutine(seconds, action));
     }
 
+    /// <summary>Runs any coroutine on the shared runner (used by Confetti).</summary>
+    public static Coroutine Run(IEnumerator routine)
+    {
+        return Runner.StartCoroutine(routine);
+    }
+
+    /// <summary>Pops an element in from scale 0 with an overshoot (ease-out-back).</summary>
+    public static void ScaleIn(RectTransform rt, float delay, float duration)
+    {
+        if (rt == null) return;
+        rt.localScale = Vector3.zero;
+        Runner.StartCoroutine(Runner.ScaleInRoutine(rt, delay, duration));
+    }
+
+    IEnumerator ScaleInRoutine(RectTransform rt, float delay, float duration)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+        float t = 0f;
+        const float c1 = 1.70158f;
+        const float c3 = c1 + 1f;
+        while (t < duration)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / duration);
+            float s = 1f + c3 * Mathf.Pow(p - 1f, 3f) + c1 * Mathf.Pow(p - 1f, 2f); // easeOutBack
+            rt.localScale = new Vector3(s, s, 1f);
+            yield return null;
+        }
+        if (rt != null) rt.localScale = Vector3.one;
+    }
+
     IEnumerator MoveRoutine(RectTransform rt, Vector2 target, float duration, Action onDone)
     {
         if (rt == null) yield break;

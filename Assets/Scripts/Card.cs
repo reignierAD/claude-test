@@ -19,6 +19,9 @@ public class Card : MonoBehaviour
     public bool inHold;
     public bool removed;
 
+    /// <summary>-1 = board card; 0 = left side stack; 1 = right side stack.</summary>
+    public int stackSide = -1;
+
     public Button button;
     public Action<Card> onClicked;
 
@@ -27,6 +30,7 @@ public class Card : MonoBehaviour
     Image _highlight;
     Text _label;
     GameObject _shade;
+    GameObject _back;
 
     public RectTransform Rect => (RectTransform)transform;
 
@@ -70,6 +74,21 @@ public class Card : MonoBehaviour
 
         card._label = Ui.Label("Name", rt, "", 17, new Color(0.45f, 0.30f, 0.15f),
             new Vector2(0, -36), new Vector2(s, 24));
+
+        // card back, shown while face-down in a side stack
+        var backRt = Ui.Rect("Back", rt, new Vector2(s, s), Vector2.zero);
+        var backImg = backRt.gameObject.AddComponent<Image>();
+        backImg.sprite = SpriteFactory.RoundedRect;
+        backImg.type = Image.Type.Sliced;
+        backImg.color = new Color(0.62f, 0.42f, 0.28f);
+        backImg.raycastTarget = false;
+        var emblemRt = Ui.Rect("Emblem", backRt, new Vector2(44, 44), Vector2.zero);
+        var emblem = emblemRt.gameObject.AddComponent<Image>();
+        emblem.sprite = SpriteFactory.Circle;
+        emblem.color = new Color(0.78f, 0.58f, 0.40f);
+        emblem.raycastTarget = false;
+        card._back = backRt.gameObject;
+        card._back.SetActive(false);
 
         // shade overlay shown while the card is covered by a higher layer
         var shadeRt = Ui.Rect("Shade", rt, new Vector2(s, s), Vector2.zero);
@@ -126,5 +145,12 @@ public class Card : MonoBehaviour
     {
         button.interactable = !blocked;
         _shade.SetActive(blocked);
+    }
+
+    /// <summary>Face-down cards (side stacks) show their back and can't be tapped.</summary>
+    public void SetFaceDown(bool down)
+    {
+        _back.SetActive(down);
+        button.interactable = !down;
     }
 }

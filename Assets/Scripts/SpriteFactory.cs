@@ -9,6 +9,7 @@ public static class SpriteFactory
     static Sprite _rounded;
     static Sprite _circle;
     static Sprite _star;
+    static Sprite _arrow;
 
     /// <summary>White rounded-rect, 9-sliced so it scales to any size.</summary>
     public static Sprite RoundedRect
@@ -40,6 +41,16 @@ public static class SpriteFactory
         }
     }
 
+    /// <summary>White left-pointing chevron (used for the back button).</summary>
+    public static Sprite Arrow
+    {
+        get
+        {
+            if (_arrow == null) _arrow = BuildArrow(64);
+            return _arrow;
+        }
+    }
+
     static Sprite BuildStar(int size)
     {
         // 10 alternating outer/inner vertices, point at the top
@@ -52,7 +63,29 @@ public static class SpriteFactory
             float r = (i % 2 == 0) ? outer : inner;
             verts[i] = new Vector2(cx + Mathf.Cos(ang) * r, cy + Mathf.Sin(ang) * r);
         }
+        return BuildPolygon(size, verts);
+    }
 
+    static Sprite BuildArrow(int size)
+    {
+        // thick "<" chevron
+        var f = new[]
+        {
+            new Vector2(0.64f, 0.88f),
+            new Vector2(0.26f, 0.50f),
+            new Vector2(0.64f, 0.12f),
+            new Vector2(0.80f, 0.26f),
+            new Vector2(0.56f, 0.50f),
+            new Vector2(0.80f, 0.74f),
+        };
+        var verts = new Vector2[f.Length];
+        for (int i = 0; i < f.Length; i++)
+            verts[i] = new Vector2(f[i].x * size, f[i].y * size);
+        return BuildPolygon(size, verts);
+    }
+
+    static Sprite BuildPolygon(int size, Vector2[] verts)
+    {
         var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
         tex.wrapMode = TextureWrapMode.Clamp;
         var pixels = new Color[size * size];

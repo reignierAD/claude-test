@@ -4,9 +4,9 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Orchestrates the whole game: menu, HUD, gameplay rules, items, scoring,
-/// level progression, Endless mode, persistence and the Web3 token flow.
-/// All UI is built from code; designer data comes from the GameSettings
-/// asset (see GameConfig.S).
+/// level progression, Endless mode, side stacks, persistence and the Web3
+/// token flow. All UI is built from code; designer data comes from the
+/// GameSettings asset (see GameConfig.S).
 /// </summary>
 public class GameController : MonoBehaviour
 {
@@ -22,6 +22,7 @@ public class GameController : MonoBehaviour
     static readonly Color StarDim = new Color(0.62f, 0.56f, 0.50f, 0.55f);
     static readonly Color ButtonRose = new Color(0.95f, 0.55f, 0.50f);
     static readonly Color WalletTeal = new Color(0.25f, 0.62f, 0.58f);
+    static readonly Color SoftBrown = new Color(0.55f, 0.45f, 0.35f);
 
     // ---- scene refs ----
     RectTransform _canvasRoot;
@@ -30,11 +31,15 @@ public class GameController : MonoBehaviour
     RectTransform _boardRoot;
     RectTransform _trayRoot;
     RectTransform _holdRoot;
+    RectTransform _leftStackRoot;
+    RectTransform _rightStackRoot;
     RectTransform _popupLayer;
 
     // ---- gameplay ----
     readonly Board _board = new Board();
     readonly Tray _tray = new Tray();
+    readonly SideStack _leftStack = new SideStack();
+    readonly SideStack _rightStack = new SideStack();
     readonly List<Card> _held = new List<Card>();
     readonly List<Card> _undoStack = new List<Card>();
     readonly System.Random _rng = new System.Random();
@@ -75,6 +80,8 @@ public class GameController : MonoBehaviour
         BuildBackground();
         BuildGameScreen();
         _tray.onTriple = HandleTriple;
+        _leftStack.Init(_leftStackRoot, -1f);
+        _rightStack.Init(_rightStackRoot, 1f);
 
         var w3 = Web3Bridge.Instance;
         if (w3 != null)
@@ -137,19 +144,17 @@ public class GameController : MonoBehaviour
         Ui.Label("Subtitle", _menuScreen, "Raggler made off with everyone's gifts! Match three to take them back!",
             26, Brown, new Vector2(0, 262), new Vector2(1200, 40), style: FontStyle.Normal);
 
-        // total stars, top right
+        // total stars + help, top right (spaced away from the screen edge)
         int total = 0;
         for (int i = 0; i < levelCount; i++) total += LevelStars(i);
-        var starRt = Ui.Rect("TotalStar", _menuScreen, new Vector2(44, 44), new Vector2(-160, -50), new Vector2(1f, 1f));
+        var starRt = Ui.Rect("TotalStar", _menuScreen, new Vector2(42, 42), new Vector2(-290, -62), new Vector2(1f, 1f));
         var starImg = starRt.gameObject.AddComponent<Image>();
         starImg.sprite = SpriteFactory.Star;
         starImg.color = StarGold;
         starImg.raycastTarget = false;
         Ui.Label("TotalStars", _menuScreen, total + "/" + (levelCount * 3), 30, Brown,
-            new Vector2(-95, -50), new Vector2(120, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
-
-        // help
-        Ui.MakeButton("Help", _menuScreen, "?", new Vector2(56, 56), new Vector2(-50, -50),
+            new Vector2(-195, -62), new Vector2(130, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
+        Ui.MakeButton("Help", _menuScreen, "?", new Vector2(56, 56), new Vector2(-70, -62),
             Orange, Color.white, 32, ShowHelpPopup, new Vector2(1f, 1f));
 
         // level grid (5 per row)
@@ -190,20 +195,27 @@ public class GameController : MonoBehaviour
             }
         }
 
-        // endless mode
+        // endless mode (wide enough that the subtitle stays inside)
         float endlessY = 110f - (rows - 1) * 205f - 235f;
-        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(420, 110), new Vector2(0, endlessY),
+        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(600, 116), new Vector2(0, endlessY),
             ButtonRose, Color.white, 30, StartEndless);
-        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 16), new Vector2(420, 44));
+        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 18), new Vector2(560, 44));
         Ui.Label("EndlessBest", endless.transform,
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
-            20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -24), new Vector2(420, 30), style: FontStyle.Normal);
+            20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -24), new Vector2(560, 30), style: FontStyle.Normal);
+
+        // power-ups remaining (bottom center)
+        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(620, 56), new Vector2(0, 48), new Vector2(0.5f, 0f));
+        Ui.Panel(itemsPanel, new Color(1f, 1f, 1f, 0.75f));
+        Ui.Label("ItemsLeftText", itemsPanel,
+            "Power-ups left   —   Remove: " + _invRemove + "     Undo: " + _invUndo + "     Refresh: " + _invRefresh,
+            22, SoftBrown, Vector2.zero, new Vector2(580, 40), style: FontStyle.Normal);
 
         // wallet corner (bottom right)
         BuildWalletCorner();
 
         // reset progress (handy while testing)
-        Ui.MakeButton("Reset", _menuScreen, "Reset Progress", new Vector2(190, 46), new Vector2(120, 45),
+        Ui.MakeButton("Reset", _menuScreen, "Reset Progress", new Vector2(190, 46), new Vector2(125, 48),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 20, ResetProgress, new Vector2(0f, 0f));
     }
 
@@ -214,22 +226,22 @@ public class GameController : MonoBehaviour
 
         if (!w3.Connected)
         {
-            Ui.MakeButton("Connect", _menuScreen, "Connect Wallet", new Vector2(240, 60), new Vector2(-150, 50),
-                WalletTeal, Color.white, 24, () => w3.Connect(), new Vector2(1f, 0f));
             if (w3.Simulated)
             {
-                Ui.Label("SimNote", _menuScreen, "(simulated outside WebGL builds)", 16,
-                    new Color(0.55f, 0.50f, 0.45f), new Vector2(-150, 12), new Vector2(300, 24),
+                Ui.Label("SimNote", _menuScreen, "(simulated outside WebGL builds)", 15,
+                    new Color(0.55f, 0.50f, 0.45f), new Vector2(-155, 92), new Vector2(260, 22),
                     style: FontStyle.Normal, anchor: new Vector2(1f, 0f));
             }
+            Ui.MakeButton("Connect", _menuScreen, "Connect Wallet", new Vector2(240, 60), new Vector2(-155, 52),
+                WalletTeal, Color.white, 24, () => w3.Connect(), new Vector2(1f, 0f));
         }
         else
         {
-            var panel = Ui.Rect("Wallet", _menuScreen, new Vector2(300, 78), new Vector2(-170, 60), new Vector2(1f, 0f));
+            var panel = Ui.Rect("Wallet", _menuScreen, new Vector2(300, 82), new Vector2(-180, 64), new Vector2(1f, 0f));
             Ui.Panel(panel, new Color(1f, 1f, 1f, 0.85f));
             Ui.Label("Addr", panel, w3.ShortAddress + (w3.Simulated ? "  (sim)" : ""), 20, Brown,
-                new Vector2(0, 16), new Vector2(280, 26), style: FontStyle.Normal);
-            Ui.Label("Bal", panel, w3.Balance + " RST", 26, WalletTeal, new Vector2(0, -14), new Vector2(280, 32));
+                new Vector2(0, 17), new Vector2(270, 26), style: FontStyle.Normal);
+            Ui.Label("Bal", panel, w3.Balance + " RST", 26, WalletTeal, new Vector2(0, -15), new Vector2(270, 32));
         }
     }
 
@@ -249,11 +261,17 @@ public class GameController : MonoBehaviour
     {
         _gameScreen = Ui.Stretch("Game", _canvasRoot);
 
-        // back + level name (top left)
-        Ui.MakeButton("Back", _gameScreen, "<", new Vector2(60, 60), new Vector2(55, -55),
-            Orange, Color.white, 34, ExitToMenu, new Vector2(0f, 1f));
-        _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 36, Brown,
-            new Vector2(210, -55), new Vector2(300, 50), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f));
+        // back button (icon) + level name, spaced so they never overlap
+        var backBtn = Ui.MakeButton("Back", _gameScreen, "", new Vector2(64, 64), new Vector2(60, -58),
+            Orange, Color.white, 34, ExitToMenuRequested, new Vector2(0f, 1f));
+        var arrowRt = Ui.Rect("Arrow", backBtn.transform, new Vector2(36, 36), new Vector2(-2, 0));
+        var arrowImg = arrowRt.gameObject.AddComponent<Image>();
+        arrowImg.sprite = SpriteFactory.Arrow;
+        arrowImg.color = Color.white;
+        arrowImg.raycastTarget = false;
+
+        _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 34, Brown,
+            new Vector2(320, -58), new Vector2(400, 50), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f));
 
         // timer + stars (top center)
         var timerBg = Ui.Rect("TimerBg", _gameScreen, new Vector2(190, 54), new Vector2(0, -42), new Vector2(0.5f, 1f));
@@ -268,19 +286,23 @@ public class GameController : MonoBehaviour
             _hudStars[s].raycastTarget = false;
         }
 
-        // score (top right)
+        // score (top right, kept away from the edge)
         _scoreText = Ui.Label("Score", _gameScreen, "Score  0", 32, Brown,
-            new Vector2(-160, -55), new Vector2(300, 50), TextAnchor.MiddleRight, anchor: new Vector2(1f, 1f));
+            new Vector2(-190, -58), new Vector2(300, 50), TextAnchor.MiddleRight, anchor: new Vector2(1f, 1f));
 
         // item buttons (right side)
-        var itemPanel = Ui.Rect("Items", _gameScreen, new Vector2(160, 470), new Vector2(-105, 40), new Vector2(1f, 0.5f));
+        var itemPanel = Ui.Rect("Items", _gameScreen, new Vector2(160, 440), new Vector2(-105, 70), new Vector2(1f, 0.5f));
         Ui.Panel(itemPanel, new Color(0.98f, 0.80f, 0.50f, 0.85f));
-        _removeBtn = BuildItemButton(itemPanel, "Remove", 150f, UseRemove, out _removeInv, out _removeUsed);
+        _removeBtn = BuildItemButton(itemPanel, "Remove", 140f, UseRemove, out _removeInv, out _removeUsed);
         _undoBtn = BuildItemButton(itemPanel, "Undo", 0f, UseUndo, out _undoInv, out _undoUsed);
-        _refreshBtn = BuildItemButton(itemPanel, "Refresh", -150f, UseRefresh, out _refreshInv, out _refreshUsed);
+        _refreshBtn = BuildItemButton(itemPanel, "Refresh", -140f, UseRefresh, out _refreshInv, out _refreshUsed);
 
         // board
         _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 60));
+
+        // side stacks (face-down piles just above the clearing zone)
+        _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-420, 225), new Vector2(0.5f, 0f));
+        _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 225), new Vector2(0.5f, 0f));
 
         // hold area (bottom left) — Remove item drops cards here
         _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 132), new Vector2(-480, 105), new Vector2(0.5f, 0f));
@@ -305,18 +327,18 @@ public class GameController : MonoBehaviour
     {
         var btn = Ui.MakeButton(label, parent, "", new Vector2(130, 120), new Vector2(0, y),
             Color.white, Brown, 24, onClick);
-        Ui.Label("Name", btn.transform, label, 24, Brown, new Vector2(0, 30), new Vector2(130, 32));
+        Ui.Label("Name", btn.transform, label, 22, Brown, new Vector2(0, 12), new Vector2(130, 30));
 
-        // inventory badge
-        var badge = Ui.Rect("Badge", btn.transform, new Vector2(46, 46), new Vector2(52, 48));
+        // inventory badge, tucked in the corner clear of the label
+        var badge = Ui.Rect("Badge", btn.transform, new Vector2(40, 40), new Vector2(56, 52));
         var bimg = badge.gameObject.AddComponent<Image>();
         bimg.sprite = SpriteFactory.Circle;
         bimg.color = DeepOrange;
         bimg.raycastTarget = false;
-        invText = Ui.Label("Inv", badge, "0", 22, Color.white, Vector2.zero, new Vector2(46, 46));
+        invText = Ui.Label("Inv", badge, "0", 19, Color.white, Vector2.zero, new Vector2(40, 40));
 
-        usedText = Ui.Label("Used", btn.transform, "0/" + GameConfig.ItemUseCapPerStage, 22,
-            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, -32), new Vector2(130, 30), style: FontStyle.Normal);
+        usedText = Ui.Label("Used", btn.transform, "0/" + GameConfig.ItemUseCapPerStage, 20,
+            SoftBrown, new Vector2(0, -30), new Vector2(130, 28), style: FontStyle.Normal);
         return btn;
     }
 
@@ -357,20 +379,67 @@ public class GameController : MonoBehaviour
         UpdateHud();
     }
 
+    /// <summary>
+    /// Deals board + side stacks from one shared type bag so that every
+    /// kind's total count (board + both stacks) is a multiple of 3.
+    /// </summary>
     void DealBoard(GameSettings.LevelDef def)
     {
         _currentDef = def;
-        _board.Generate(_boardRoot, def, _rng, OnCardClicked);
+        _leftStack.Clear();
+        _rightStack.Clear();
+
+        int side = Mathf.Max(0, def.sideStackCards);
+        int boardTiles = Mathf.Max(3, (def.tiles + 2) / 3 * 3);
+        int total = boardTiles + side * 2;
+        while (total % 3 != 0) { boardTiles++; total++; }
+        int types = Mathf.Clamp(def.cardVarieties, 1, GameConfig.S.cardKinds.Length);
+
+        var bag = new List<int>();
+        for (int i = 0; i < total / 3; i++)
+        {
+            int t = _rng.Next(types);
+            bag.Add(t); bag.Add(t); bag.Add(t);
+        }
+        for (int i = bag.Count - 1; i > 0; i--)
+        {
+            int j = _rng.Next(i + 1);
+            int tmp = bag[i]; bag[i] = bag[j]; bag[j] = tmp;
+        }
+
+        int idx = 0;
+        for (int i = 0; i < side; i++) AddStackCard(_leftStack, _leftStackRoot, 0, bag[idx++]);
+        for (int i = 0; i < side; i++) AddStackCard(_rightStack, _rightStackRoot, 1, bag[idx++]);
+        _leftStack.Refresh(false);
+        _rightStack.Refresh(false);
+
+        _board.Generate(_boardRoot, def, _rng, OnCardClicked, bag.GetRange(idx, bag.Count - idx));
+    }
+
+    void AddStackCard(SideStack stack, RectTransform root, int sideId, int type)
+    {
+        var card = Card.Create(root, type);
+        card.stackSide = sideId;
+        card.onClicked = OnCardClicked;
+        stack.AddInitial(card);
     }
 
     void ClearTable()
     {
         _board.Clear();
         _tray.Clear();
+        _leftStack.Clear();
+        _rightStack.Clear();
         foreach (var c in _held)
             if (c != null) Destroy(c.gameObject);
         _held.Clear();
         _undoStack.Clear();
+    }
+
+    void ExitToMenuRequested()
+    {
+        if (_state == State.Playing) ShowQuitConfirmPopup();
+        else ExitToMenu();
     }
 
     void ExitToMenu()
@@ -385,7 +454,7 @@ public class GameController : MonoBehaviour
 
     void OnCardClicked(Card card)
     {
-        if (_state != State.Playing || card.removed || card.inTray) return;
+        if (_state != State.Playing || _popupLayer != null || card.removed || card.inTray) return;
 
         if (card.inHold)
         {
@@ -401,6 +470,17 @@ public class GameController : MonoBehaviour
             return;
         }
 
+        // side stack card: only the face-up front card can be played
+        if (card.stackSide >= 0)
+        {
+            var stack = card.stackSide == 0 ? _leftStack : _rightStack;
+            if (stack.Front != card) return;
+            stack.Take(card);
+            _undoStack.Add(card);
+            PlaceInTray(card);
+            return;
+        }
+
         // board card
         _board.Take(card);
         _undoStack.Add(card);
@@ -412,9 +492,11 @@ public class GameController : MonoBehaviour
     {
         card.inTray = true;
         card.SetBlocked(false);
+        card.SetFaceDown(false);
         card.button.interactable = false;
         card.transform.SetParent(_trayRoot, true);
         card.transform.SetAsLastSibling();
+        card.transform.localScale = Vector3.one;
 
         bool survived = _tray.Add(card);
         UpdateHud();
@@ -441,7 +523,8 @@ public class GameController : MonoBehaviour
 
     void CheckCleared()
     {
-        if (_board.Count > 0 || _held.Count > 0 || _tray.cards.Count > 0) return;
+        if (_board.Count > 0 || _leftStack.Count > 0 || _rightStack.Count > 0 ||
+            _held.Count > 0 || _tray.cards.Count > 0) return;
 
         if (_levelIndex >= 0) WinLevel();
         else AdvanceEndless();
@@ -522,7 +605,8 @@ public class GameController : MonoBehaviour
     // =====================================================================
 
     bool CanUseRemove => _state == State.Playing && _invRemove > 0 &&
-        _usedRemove < GameConfig.ItemUseCapPerStage && _held.Count == 0 && _tray.cards.Count > 0;
+        _usedRemove < GameConfig.ItemUseCapPerStage &&
+        _held.Count < GameConfig.HoldSize && _tray.cards.Count > 0;
 
     bool CanUseUndo => _state == State.Playing && _invUndo > 0 &&
         _usedUndo < GameConfig.ItemUseCapPerStage && HasUndoTarget();
@@ -544,7 +628,9 @@ public class GameController : MonoBehaviour
     {
         if (!CanUseRemove) return;
 
-        var taken = _tray.TakeFromFront(GameConfig.HoldSize);
+        // fill whatever space is free in the holding area (up to 3 cards)
+        int space = GameConfig.HoldSize - _held.Count;
+        var taken = _tray.TakeFromFront(space);
         foreach (var c in taken)
         {
             c.inTray = false;
@@ -575,7 +661,9 @@ public class GameController : MonoBehaviour
         if (target == null) return;
 
         _tray.Remove(target);
-        _board.Return(target);
+        if (target.stackSide == 0) _leftStack.PushFront(target);
+        else if (target.stackSide == 1) _rightStack.PushFront(target);
+        else _board.Return(target);
 
         _invUndo--;
         _usedUndo++;
@@ -607,7 +695,8 @@ public class GameController : MonoBehaviour
 
     void Update()
     {
-        if (_state == State.Playing)
+        // timer pauses while any popup (quit confirmation etc.) is open
+        if (_state == State.Playing && _popupLayer == null)
         {
             _elapsed += Time.deltaTime;
             if (_levelIndex < 0 && GameConfig.S.endlessDuration > 0f && _elapsed >= GameConfig.S.endlessDuration)
@@ -711,7 +800,7 @@ public class GameController : MonoBehaviour
         if (!w3.Connected)
         {
             Ui.Label("ClaimHint", panel, "Connect your wallet to claim star tokens (1 star = 1 RST).", 22,
-                new Color(0.55f, 0.45f, 0.35f), new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+                SoftBrown, new Vector2(0, labelY), new Vector2(600, 30), style: FontStyle.Normal);
             Ui.MakeButton("ConnectPopup", panel, "Connect Wallet", new Vector2(240, 56), new Vector2(0, buttonY),
                 WalletTeal, Color.white, 24, () => w3.Connect());
             return;
@@ -720,14 +809,14 @@ public class GameController : MonoBehaviour
         if (levelOneBased > 0 && w3.IsLevelClaimed(levelOneBased))
         {
             Ui.Label("ClaimDone", panel, "Reward already claimed — finished levels give no more tokens.", 22,
-                WalletTeal, new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+                WalletTeal, new Vector2(0, labelY), new Vector2(600, 30), style: FontStyle.Normal);
             return;
         }
 
         if (stars < 1) return;
 
         _claimStatusText = Ui.Label("ClaimStatus", panel, "1 star = 1 RST on BSC Testnet", 20,
-            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, labelY), new Vector2(620, 30), style: FontStyle.Normal);
+            SoftBrown, new Vector2(0, labelY), new Vector2(600, 30), style: FontStyle.Normal);
 
         int lv = levelOneBased;
         int st = stars;
@@ -745,17 +834,17 @@ public class GameController : MonoBehaviour
     // popups
     // =====================================================================
 
-    RectTransform BuildPopup(string title, float height)
+    RectTransform BuildPopup(string title, float height, float width = 700f)
     {
         ClosePopup();
         _popupLayer = Ui.Stretch("PopupLayer", _canvasRoot);
         var dim = _popupLayer.gameObject.AddComponent<Image>();
         dim.color = new Color(0f, 0f, 0f, 0.55f); // also blocks clicks behind it
 
-        var panel = Ui.Rect("Panel", _popupLayer, new Vector2(700, height), Vector2.zero);
+        var panel = Ui.Rect("Panel", _popupLayer, new Vector2(width, height), Vector2.zero);
         Ui.Panel(panel, Cream);
         Ui.Label("Title", panel, title, 46, DeepOrange,
-            new Vector2(0, height * 0.5f - 60f), new Vector2(640, 60));
+            new Vector2(0, height * 0.5f - 60f), new Vector2(width - 80f, 60));
         return panel;
     }
 
@@ -765,6 +854,19 @@ public class GameController : MonoBehaviour
         _popupLayer = null;
         _claimButton = null;
         _claimStatusText = null;
+    }
+
+    void ShowQuitConfirmPopup()
+    {
+        var panel = BuildPopup("Quit Level?", 360);
+        Ui.Label("Msg", panel,
+            "Are you sure you want to quit?\nProgress in this run will be lost.", 26, Brown,
+            new Vector2(0, 25), new Vector2(560, 80), style: FontStyle.Normal);
+
+        Ui.MakeButton("Cancel", panel, "Keep Playing", new Vector2(210, 64), new Vector2(-120, -105),
+            Orange, Color.white, 24, ClosePopup);
+        Ui.MakeButton("Quit", panel, "Quit", new Vector2(210, 64), new Vector2(120, -105),
+            new Color(0.8f, 0.72f, 0.62f), Color.white, 24, ExitToMenu);
     }
 
     void ShowWinPopup(int stars, int timeBonus)
@@ -778,6 +880,7 @@ public class GameController : MonoBehaviour
             img.sprite = SpriteFactory.Star;
             img.color = s < stars ? StarGold : StarDim;
             img.raycastTarget = false;
+            if (s < stars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
         }
 
         Ui.Label("Time", panel, "Time  " + FormatTime(_elapsed), 28, Brown,
@@ -785,7 +888,7 @@ public class GameController : MonoBehaviour
         Ui.Label("Score", panel, "Score  " + _score + "   (time bonus +" + timeBonus + ")", 28, Brown,
             new Vector2(0, 40), new Vector2(600, 36), style: FontStyle.Normal);
         Ui.Label("Reward", panel, "Items: +1 Remove, +1 Undo, +1 Refresh", 22,
-            new Color(0.55f, 0.45f, 0.35f), new Vector2(0, 2), new Vector2(600, 30), style: FontStyle.Normal);
+            SoftBrown, new Vector2(0, 2), new Vector2(600, 30), style: FontStyle.Normal);
 
         AddClaimSection(panel, -50f, -110f, _levelIndex + 1, stars);
 
@@ -799,6 +902,9 @@ public class GameController : MonoBehaviour
             Ui.MakeButton("Next", panel, "Next", new Vector2(170, 66), new Vector2(210, -250),
                 ButtonRose, Color.white, 26, () => StartLevel(replayIndex + 1));
         }
+
+        // celebration!
+        Confetti.Burst(_popupLayer, 70);
     }
 
     void ShowLosePopup()
@@ -834,6 +940,7 @@ public class GameController : MonoBehaviour
             img.sprite = SpriteFactory.Star;
             img.color = s < _endlessFinalStars ? StarGold : StarDim;
             img.raycastTarget = false;
+            if (s < _endlessFinalStars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
         }
 
         AddClaimSection(panel, -70f, -130f, -1, _endlessFinalStars);
@@ -842,24 +949,27 @@ public class GameController : MonoBehaviour
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, ExitToMenu);
         Ui.MakeButton("Retry", panel, "Retry", new Vector2(190, 66), new Vector2(110, -240),
             ButtonRose, Color.white, 26, StartEndless);
+
+        if (_endlessFinalStars >= 2)
+            Confetti.Burst(_popupLayer, 45);
     }
 
     void ShowHelpPopup()
     {
-        var panel = BuildPopup("Notice", 620);
+        var panel = BuildPopup("Notice", 640, 800);
         string rules =
             "Raggler made off with everyone's gifts!\nDefeat him and take back the gifts!\n\n" +
             "1. Tap the cards to place them in the clearing zone below.\n" +
-            "2. Match three identical cards to clear them automatically.\n     Clear all cards on the screen to win.\n" +
+            "2. Match three identical cards to clear them automatically. Clear all cards on the screen to win.\n" +
             "3. The clearing zone can hold up to 7 cards. Go over, and you lose!\n" +
             "4. You may use items: Remove Card, Undo Card, and Refresh Card.\n" +
-            "5. The rating for each level is based on how fast you complete it!\n\n" +
-            "Tokens: connect MetaMask to convert stars into RST (1 star = 1 token).\n" +
-            "Each level pays out once. In Endless, you keep the stars still lit\n" +
-            "when the timer runs out.";
-        Ui.Label("Rules", panel, rules, 23, Brown, new Vector2(0, 0), new Vector2(620, 440),
-            TextAnchor.UpperLeft, FontStyle.Normal);
-        Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -250),
+            "5. Some boards have face-down piles beside the clearing zone — only the front card can be played.\n" +
+            "6. The rating for each level is based on how fast you complete it!\n\n" +
+            "Tokens: connect MetaMask to convert stars into RST (1 star = 1 token). Each level pays out once. " +
+            "In Endless, you keep the stars still lit when the timer runs out.";
+        Ui.Label("Rules", panel, rules, 23, Brown, new Vector2(0, -10), new Vector2(700, 440),
+            TextAnchor.UpperLeft, FontStyle.Normal, null, true);
+        Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -260),
             Orange, Color.white, 26, ClosePopup);
     }
 
