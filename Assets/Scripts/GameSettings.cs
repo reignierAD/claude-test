@@ -68,6 +68,25 @@ public class GameSettings : ScriptableObject
     public Sprite backgroundSprite;
     public Color backgroundColor = new Color(1.00f, 0.95f, 0.86f);
 
+    [Header("Card Back & Power-up Icons")]
+    [Tooltip("Picture shown on face-down cards in the side piles. Leave empty for the plain generated back.")]
+    public Sprite cardBackSprite;
+    [Tooltip("Optional icons drawn on the Remove / Undo / Refresh buttons in-game.")]
+    public Sprite removeIcon;
+    public Sprite undoIcon;
+    public Sprite refreshIcon;
+
+    [Header("Menu Peekaboo")]
+    [Tooltip("Images that randomly peek from the screen edges on the main menu (memes welcome!). Empty = disabled.")]
+    public Sprite[] peekabooSprites;
+    [Tooltip("Seconds between appearances (random in this range).")]
+    public float peekabooMinInterval = 10f;
+    public float peekabooMaxInterval = 15f;
+    [Tooltip("How long the image stays peeked out, in seconds.")]
+    public float peekabooShowTime = 2.5f;
+    [Tooltip("Approximate size of the peekaboo image in UI pixels.")]
+    public float peekabooSize = 220f;
+
     [Header("Levels")]
     [Tooltip("One entry per level. Card varieties per level are set here (e.g. 3 in level 1, 5 in level 2...).")]
     public LevelDef[] levels;

@@ -195,21 +195,21 @@ public class GameController : MonoBehaviour
             }
         }
 
-        // endless mode (wide enough that the subtitle stays inside)
-        float endlessY = 110f - (rows - 1) * 205f - 235f;
-        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(600, 116), new Vector2(0, endlessY),
+        // endless mode (raised clear of the power-ups strip below)
+        float endlessY = 110f - (rows - 1) * 205f - 212f;
+        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(600, 112), new Vector2(0, endlessY),
             ButtonRose, Color.white, 30, StartEndless);
-        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 18), new Vector2(560, 44));
+        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 17), new Vector2(560, 44));
         Ui.Label("EndlessBest", endless.transform,
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
-            20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -24), new Vector2(560, 30), style: FontStyle.Normal);
+            20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -23), new Vector2(560, 30), style: FontStyle.Normal);
 
-        // power-ups remaining (bottom center)
-        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(620, 56), new Vector2(0, 48), new Vector2(0.5f, 0f));
+        // power-ups remaining (slim strip along the very bottom)
+        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(620, 46), new Vector2(0, 28), new Vector2(0.5f, 0f));
         Ui.Panel(itemsPanel, new Color(1f, 1f, 1f, 0.75f));
         Ui.Label("ItemsLeftText", itemsPanel,
             "Power-ups left   —   Remove: " + _invRemove + "     Undo: " + _invUndo + "     Refresh: " + _invRefresh,
-            22, SoftBrown, Vector2.zero, new Vector2(580, 40), style: FontStyle.Normal);
+            20, SoftBrown, Vector2.zero, new Vector2(580, 36), style: FontStyle.Normal);
 
         // wallet corner (bottom right)
         BuildWalletCorner();
@@ -217,6 +217,9 @@ public class GameController : MonoBehaviour
         // reset progress (handy while testing)
         Ui.MakeButton("Reset", _menuScreen, "Reset Progress", new Vector2(190, 46), new Vector2(125, 48),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 20, ResetProgress, new Vector2(0f, 0f));
+
+        // random meme peekaboo from the screen edges (configure in GameSettings)
+        _menuScreen.gameObject.AddComponent<Peekaboo>();
     }
 
     void BuildWalletCorner()
@@ -293,23 +296,27 @@ public class GameController : MonoBehaviour
         // item buttons (right side)
         var itemPanel = Ui.Rect("Items", _gameScreen, new Vector2(160, 440), new Vector2(-105, 70), new Vector2(1f, 0.5f));
         Ui.Panel(itemPanel, new Color(0.98f, 0.80f, 0.50f, 0.85f));
-        _removeBtn = BuildItemButton(itemPanel, "Remove", 140f, UseRemove, out _removeInv, out _removeUsed);
-        _undoBtn = BuildItemButton(itemPanel, "Undo", 0f, UseUndo, out _undoInv, out _undoUsed);
-        _refreshBtn = BuildItemButton(itemPanel, "Refresh", -140f, UseRefresh, out _refreshInv, out _refreshUsed);
+        _removeBtn = BuildItemButton(itemPanel, "Remove", 140f, GameConfig.S.removeIcon, UseRemove, out _removeInv, out _removeUsed);
+        _undoBtn = BuildItemButton(itemPanel, "Undo", 0f, GameConfig.S.undoIcon, UseUndo, out _undoInv, out _undoUsed);
+        _refreshBtn = BuildItemButton(itemPanel, "Refresh", -140f, GameConfig.S.refreshIcon, UseRefresh, out _refreshInv, out _refreshUsed);
 
-        // board
-        _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 60));
+        // board play area: subtle backdrop marking where cards can appear,
+        // then the board root itself
+        var boardZone = Ui.Rect("BoardZone", _gameScreen, new Vector2(1150, 500), new Vector2(-40, 90));
+        var zoneImg = Ui.Panel(boardZone, new Color(1f, 1f, 1f, 0.20f));
+        zoneImg.raycastTarget = false;
+        _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 90));
 
-        // side stacks (face-down piles just above the clearing zone)
-        _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-420, 225), new Vector2(0.5f, 0f));
-        _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 225), new Vector2(0.5f, 0f));
+        // side stacks (face-down piles, with clear air above the clearing zone)
+        _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-420, 245), new Vector2(0.5f, 0f));
+        _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 245), new Vector2(0.5f, 0f));
 
         // hold area (bottom left) — Remove item drops cards here
-        _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 132), new Vector2(-480, 105), new Vector2(0.5f, 0f));
+        _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 132), new Vector2(-480, 85), new Vector2(0.5f, 0f));
         Ui.Panel(_holdRoot, new Color(0.45f, 0.40f, 0.36f, 0.45f));
 
-        // clearing zone (bottom center)
-        _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 132), new Vector2(160, 105), new Vector2(0.5f, 0f));
+        // clearing zone (bottom center, dropped lower for breathing room)
+        _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 132), new Vector2(160, 85), new Vector2(0.5f, 0f));
         Ui.Panel(_trayRoot, new Color(0.98f, 0.72f, 0.35f, 0.95f));
 
         // toast / combo text
@@ -323,11 +330,25 @@ public class GameController : MonoBehaviour
         _gameScreen.gameObject.SetActive(false);
     }
 
-    Button BuildItemButton(Transform parent, string label, float y, System.Action onClick, out Text invText, out Text usedText)
+    Button BuildItemButton(Transform parent, string label, float y, Sprite icon, System.Action onClick, out Text invText, out Text usedText)
     {
         var btn = Ui.MakeButton(label, parent, "", new Vector2(130, 120), new Vector2(0, y),
             Color.white, Brown, 24, onClick);
-        Ui.Label("Name", btn.transform, label, 22, Brown, new Vector2(0, 12), new Vector2(130, 30));
+
+        if (icon != null)
+        {
+            // custom picture (GameSettings > Power-up Icons) with the name below
+            var iconRt = Ui.Rect("Icon", btn.transform, new Vector2(46, 46), new Vector2(0, 24));
+            var iconImg = iconRt.gameObject.AddComponent<Image>();
+            iconImg.sprite = icon;
+            iconImg.preserveAspect = true;
+            iconImg.raycastTarget = false;
+            Ui.Label("Name", btn.transform, label, 18, Brown, new Vector2(0, -12), new Vector2(130, 26));
+        }
+        else
+        {
+            Ui.Label("Name", btn.transform, label, 22, Brown, new Vector2(0, 12), new Vector2(130, 30));
+        }
 
         // inventory badge, tucked in the corner clear of the label
         var badge = Ui.Rect("Badge", btn.transform, new Vector2(40, 40), new Vector2(56, 52));
@@ -338,7 +359,7 @@ public class GameController : MonoBehaviour
         invText = Ui.Label("Inv", badge, "0", 19, Color.white, Vector2.zero, new Vector2(40, 40));
 
         usedText = Ui.Label("Used", btn.transform, "0/" + GameConfig.ItemUseCapPerStage, 20,
-            SoftBrown, new Vector2(0, -30), new Vector2(130, 28), style: FontStyle.Normal);
+            SoftBrown, new Vector2(0, -36), new Vector2(130, 28), style: FontStyle.Normal);
         return btn;
     }
 

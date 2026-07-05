@@ -10,6 +10,11 @@ using UnityEngine;
 /// </summary>
 public class Board
 {
+    // Play-area bounds in half-steps: cards spread wide across the screen
+    // but never wander below/above the clean board zone.
+    public const int MaxCol = 8;
+    public const int MaxRow = 3;
+
     public readonly List<Card> cards = new List<Card>();
 
     readonly List<RectTransform> _layerRoots = new List<RectTransform>();
@@ -80,8 +85,8 @@ public class Board
     /// </summary>
     static List<Vector2Int> PickPositions(int count, int layer, int totalLayers, System.Random rng)
     {
-        int maxCol = Mathf.Max(2, 6 - layer);
-        int maxRow = Mathf.Max(2, 4 - layer / 2);
+        int maxCol = Mathf.Max(3, MaxCol - layer);
+        int maxRow = Mathf.Max(2, MaxRow - layer / 2);
 
         List<Vector2Int> lattice;
         while (true)
@@ -90,8 +95,8 @@ public class Board
             for (int c = -maxCol; c <= maxCol; c += 2)
                 for (int r = -maxRow; r <= maxRow; r += 2)
                     lattice.Add(new Vector2Int(c, r));
-            if (lattice.Count >= count || (maxCol >= 6 && maxRow >= 4)) break;
-            if (maxCol <= maxRow * 2) maxCol++; else maxRow++;
+            if (lattice.Count >= count || (maxCol >= MaxCol && maxRow >= MaxRow)) break;
+            if (maxCol <= maxRow * 2 && maxCol < MaxCol) maxCol++; else maxRow++;
         }
 
         Shuffle(lattice, rng);
@@ -106,6 +111,8 @@ public class Board
             int jr = rng.Next(-1, 2);
             if (jc == 0 && jr == 0) continue;
             var candidate = new Vector2Int(chosen[i].x + jc, chosen[i].y + jr);
+            // never jitter outside the play-area bounds
+            if (Mathf.Abs(candidate.x) > MaxCol || Mathf.Abs(candidate.y) > MaxRow) continue;
             bool conflict = false;
             for (int k = 0; k < chosen.Count; k++)
             {

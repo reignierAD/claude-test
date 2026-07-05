@@ -75,18 +75,29 @@ public class Card : MonoBehaviour
         card._label = Ui.Label("Name", rt, "", 17, new Color(0.45f, 0.30f, 0.15f),
             new Vector2(0, -36), new Vector2(s, 24));
 
-        // card back, shown while face-down in a side stack
+        // card back, shown while face-down in a side pile. A custom picture
+        // can be assigned in GameSettings > Card Back; otherwise a plain
+        // generated back is used.
         var backRt = Ui.Rect("Back", rt, new Vector2(s, s), Vector2.zero);
         var backImg = backRt.gameObject.AddComponent<Image>();
-        backImg.sprite = SpriteFactory.RoundedRect;
-        backImg.type = Image.Type.Sliced;
-        backImg.color = new Color(0.62f, 0.42f, 0.28f);
+        var customBack = GameConfig.S.cardBackSprite;
+        if (customBack != null)
+        {
+            backImg.sprite = customBack;
+            backImg.color = Color.white;
+        }
+        else
+        {
+            backImg.sprite = SpriteFactory.RoundedRect;
+            backImg.type = Image.Type.Sliced;
+            backImg.color = new Color(0.62f, 0.42f, 0.28f);
+            var emblemRt = Ui.Rect("Emblem", backRt, new Vector2(44, 44), Vector2.zero);
+            var emblem = emblemRt.gameObject.AddComponent<Image>();
+            emblem.sprite = SpriteFactory.Circle;
+            emblem.color = new Color(0.78f, 0.58f, 0.40f);
+            emblem.raycastTarget = false;
+        }
         backImg.raycastTarget = false;
-        var emblemRt = Ui.Rect("Emblem", backRt, new Vector2(44, 44), Vector2.zero);
-        var emblem = emblemRt.gameObject.AddComponent<Image>();
-        emblem.sprite = SpriteFactory.Circle;
-        emblem.color = new Color(0.78f, 0.58f, 0.40f);
-        emblem.raycastTarget = false;
         card._back = backRt.gameObject;
         card._back.SetActive(false);
 

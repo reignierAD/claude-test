@@ -30,6 +30,12 @@ in the Inspector — no code required:
   varieties exist, and assign a **Sprite** to each to use your own card
   pictures (drag any imported image; set its Texture Type to *Sprite (2D
   and UI)*). Entries without a sprite render as colored placeholder circles.
+- **Card Back & Power-up Icons**: give face-down side-pile cards a custom
+  picture, and put icons on the Remove / Undo / Refresh buttons.
+- **Menu Peekaboo**: drop any images (memes encouraged) into *Peekaboo
+  Sprites* and they'll randomly peek in from a screen edge on the main
+  menu, hold a moment, and duck away — interval, hold time and size are
+  all tunable. Leave the list empty to disable.
 - **Background**: assign a full-screen *Background Sprite*, or just pick a
   *Background Color*.
 - **Levels**: one list entry per level (add more entries = more levels).
