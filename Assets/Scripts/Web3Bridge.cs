@@ -114,7 +114,9 @@ public class Web3Bridge : MonoBehaviour
 
     public void ClaimEndless(int stars)
     {
-        stars = Mathf.Clamp(stars, 1, 3);
+        // endless banks stars across boards, so totals can exceed 3;
+        // the contract caps a single endless claim at 100
+        stars = Mathf.Clamp(stars, 1, 100);
 #if UNITY_WEBGL && !UNITY_EDITOR
         ClaimPending = true;
         JS_Web3_ClaimEndless(stars);

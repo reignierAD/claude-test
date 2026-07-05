@@ -9,7 +9,7 @@ token) on the **BNB Smart Chain (BSC) Testnet**.
 | Mode | Reward | Repeatable? |
 |---|---|---|
 | Levels 1..N | Stars earned on the clear (1–3) → RST | **No** — the contract records the claim; a finished level never pays again |
-| Endless | Stars still lit when the timer runs out (or when you overflow) → RST | Yes, with an on-chain cooldown (default 10 min) |
+| Endless | Stars banked across the run (each cleared board banks the stars still lit, then timer + stars reset) → RST | Yes, with an on-chain cooldown (default 10 min) |
 
 ## 1. MetaMask + test BNB
 

@@ -33,29 +33,36 @@ public class Peekaboo : MonoBehaviour
         int side = Random.Range(0, 4); // 0 bottom, 1 top, 2 left, 3 right
         float size = Mathf.Max(60f, s.peekabooSize);
 
+        // the image's BOTTOM always faces the edge it pops out of:
+        // bottom = upright, top = upside down, left/right = lying sideways
         Vector2 anchor, hidden, shown;
+        float baseAngle;
         switch (side)
         {
             case 0:
                 anchor = new Vector2(0.5f, 0f);
+                baseAngle = 0f;
                 float bx = Random.Range(-600f, 600f);
                 hidden = new Vector2(bx, -size * 0.75f);
                 shown = new Vector2(bx, size * 0.32f);
                 break;
             case 1:
                 anchor = new Vector2(0.5f, 1f);
+                baseAngle = 180f;
                 float tx = Random.Range(-600f, 600f);
                 hidden = new Vector2(tx, size * 0.75f);
                 shown = new Vector2(tx, -size * 0.32f);
                 break;
             case 2:
                 anchor = new Vector2(0f, 0.5f);
+                baseAngle = -90f; // bottom points at the left edge
                 float ly = Random.Range(-300f, 300f);
                 hidden = new Vector2(-size * 0.75f, ly);
                 shown = new Vector2(size * 0.32f, ly);
                 break;
             default:
                 anchor = new Vector2(1f, 0.5f);
+                baseAngle = 90f; // bottom points at the right edge
                 float ry = Random.Range(-300f, 300f);
                 hidden = new Vector2(size * 0.75f, ry);
                 shown = new Vector2(-size * 0.32f, ry);
@@ -64,7 +71,7 @@ public class Peekaboo : MonoBehaviour
 
         var rt = Ui.Rect("Peekaboo", transform, new Vector2(size, size), hidden, anchor);
         rt.SetSiblingIndex(0); // behind the menu buttons and labels
-        rt.localEulerAngles = new Vector3(0f, 0f, Random.Range(-14f, 14f));
+        rt.localEulerAngles = new Vector3(0f, 0f, baseAngle + Random.Range(-14f, 14f));
         var img = rt.gameObject.AddComponent<Image>();
         img.sprite = sprite;
         img.preserveAspect = true;

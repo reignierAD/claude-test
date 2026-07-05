@@ -83,9 +83,11 @@ Each item is limited to **10 uses per level** and consumes inventory
   a time bonus on clear.
 - **Endless:** boards of a fixed variety pool keep coming while a
   **countdown timer** runs. Your three stars burn out at configurable
-  times; when the timer hits zero (or the zone overflows) the run ends
-  and **the stars still lit are what you keep** — and what you can claim
-  as tokens.
+  times; **clearing a board banks the stars still lit**, then the timer
+  and stars reset fresh for the next board. A failed or timed-out board
+  banks nothing. The run's result shows up to 3 star icons plus a "+N"
+  for anything banked beyond that (e.g. 2★ + 3★ = ★★★ +2), and the whole
+  banked total is claimable as tokens.
 
 ## Stars → tokens (BSC Testnet) 🪙
 
@@ -95,8 +97,8 @@ Each item is limited to **10 uses per level** and consumes inventory
   1 token, ERC-20). **Each level pays out exactly once per wallet** —
   enforced by the smart contract; replaying a finished level never mints
   again.
-- End an Endless run → claim the stars you kept (repeatable, with an
-  on-chain cooldown).
+- End an Endless run → claim every star you banked across its boards
+  (repeatable, with an on-chain cooldown).
 - Balances are read through the **Moralis Web3 Data API** when a key is
   configured, with a direct-chain fallback.
 - In the editor (non-WebGL) the whole flow runs as a **local simulation**

@@ -48,6 +48,7 @@ public class GameController : MonoBehaviour
     GameSettings.LevelDef _currentDef;
     int _levelIndex;        // 0-based; -1 while in Endless mode
     int _endlessRound;
+    int _endlessTotalStars; // stars banked from cleared endless boards
     int _endlessFinalStars;
     float _elapsed;
     int _score;
@@ -392,6 +393,7 @@ public class GameController : MonoBehaviour
         _score = 0;
         _combo = 0;
         _lastMatchTime = -999f;
+        _endlessTotalStars = 0;
         _endlessFinalStars = 0;
         _usedRemove = _usedUndo = _usedRefresh = 0;
 
@@ -572,13 +574,20 @@ public class GameController : MonoBehaviour
         ShowWinPopup(stars, bonus);
     }
 
+    /// <summary>
+    /// A cleared endless board banks the stars still lit, then the timer
+    /// and stars reset fresh for the next board.
+    /// </summary>
     void AdvanceEndless()
     {
+        int earned = EndlessStarsRemaining();
+        _endlessTotalStars += earned;
         int bonus = GameConfig.EndlessRoundBonus * _endlessRound;
         _score += bonus;
-        Toast("Round " + _endlessRound + " clear!  +" + bonus);
+        Toast("Round " + _endlessRound + " clear!  +" + earned + (earned == 1 ? " star" : " stars") + "   +" + bonus);
         _endlessRound++;
         _undoStack.Clear();
+        _elapsed = 0f; // fresh countdown and fresh stars for the next board
         DealBoard(GameConfig.S.GetEndlessRound(_rng));
         UpdateHud();
     }
@@ -608,7 +617,8 @@ public class GameController : MonoBehaviour
     void EndEndlessRun(bool timeUp)
     {
         _state = State.Finished;
-        _endlessFinalStars = EndlessStarsRemaining();
+        // the failed / timed-out board banks nothing; only cleared boards count
+        _endlessFinalStars = _endlessTotalStars;
 
         int best = PlayerPrefs.GetInt("endless_best", 0);
         if (_score > best)
@@ -748,7 +758,8 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            _stageText.text = "Endless  ·  Round " + _endlessRound;
+            _stageText.text = "Endless  ·  Round " + _endlessRound +
+                (_endlessTotalStars > 0 ? "   ·   Banked: " + _endlessTotalStars : "");
             float remain = Mathf.Max(0f, GameConfig.S.endlessDuration - _elapsed);
             _timerText.text = FormatTime(remain);
             int stars = EndlessStarsRemaining();
@@ -952,16 +963,26 @@ public class GameController : MonoBehaviour
         Ui.Label("Best", panel, "Best  " + best, 24, Brown,
             new Vector2(0, 82), new Vector2(600, 32), style: FontStyle.Normal);
 
-        Ui.Label("StarsKept", panel, "Stars kept before the timer ran out:", 24, Brown,
+        Ui.Label("StarsKept", panel, "Stars banked this run:", 24, Brown,
             new Vector2(0, 35), new Vector2(600, 32), style: FontStyle.Normal);
+        int shownStars = Mathf.Min(3, _endlessFinalStars);
         for (int s = 0; s < 3; s++)
         {
             var srt = Ui.Rect("KStar" + s, panel, new Vector2(56, 56), new Vector2((s - 1) * 66f, -15f));
             var img = srt.gameObject.AddComponent<Image>();
             img.sprite = SpriteFactory.Star;
-            img.color = s < _endlessFinalStars ? StarGold : StarDim;
+            img.color = s < shownStars ? StarGold : StarDim;
             img.raycastTarget = false;
-            if (s < _endlessFinalStars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
+            if (s < shownStars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
+        }
+        if (_endlessFinalStars > 3)
+        {
+            var plus = Ui.Label("PlusStars", panel, "+" + (_endlessFinalStars - 3), 42, StarGold,
+                new Vector2(165, -15f), new Vector2(120, 56), TextAnchor.MiddleLeft);
+            var plusOutline = plus.gameObject.AddComponent<Outline>();
+            plusOutline.effectColor = new Color(0.55f, 0.38f, 0.05f, 0.85f);
+            plusOutline.effectDistance = new Vector2(2f, -2f);
+            Tween.ScaleIn((RectTransform)plus.transform, 0.25f + 3 * 0.22f, 0.5f);
         }
 
         AddClaimSection(panel, -70f, -130f, -1, _endlessFinalStars);
@@ -987,7 +1008,8 @@ public class GameController : MonoBehaviour
             "5. Some boards have face-down piles beside the clearing zone — only the front card can be played.\n" +
             "6. The rating for each level is based on how fast you complete it!\n\n" +
             "Tokens: connect MetaMask to convert stars into RST (1 star = 1 token). Each level pays out once. " +
-            "In Endless, you keep the stars still lit when the timer runs out.";
+            "In Endless, every cleared board banks the stars still lit, then the timer and stars reset — " +
+            "a failed board banks nothing.";
         Ui.Label("Rules", panel, rules, 23, Brown, new Vector2(0, -10), new Vector2(700, 440),
             TextAnchor.UpperLeft, FontStyle.Normal, null, true);
         Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -260),

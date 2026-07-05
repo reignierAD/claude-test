@@ -11,9 +11,10 @@ pragma solidity ^0.8.20;
  *    tokens (1 star = 1 RST). Each level can be claimed ONCE per wallet —
  *    after that, finishing the level again never yields more tokens.
  *
- *  - claimEndless(stars): converts the stars still lit when an Endless run
- *    ends (timer ran out or the clearing zone overflowed). Repeatable, but
- *    rate-limited by a cooldown to stop trivial farming.
+ *  - claimEndless(stars): converts the stars banked across an Endless run
+ *    (each cleared board banks the stars still lit before its timer reset,
+ *    so totals can exceed 3). Repeatable, but rate-limited by a cooldown
+ *    to stop trivial farming.
  *
  * NOTE (school-project honesty): the star amounts are reported by the game
  * client, so a technically savvy player could call these functions directly.
@@ -62,7 +63,7 @@ contract RagglerToken {
     }
 
     function claimEndless(uint8 stars) external {
-        require(stars >= 1 && stars <= 3, "stars must be 1-3");
+        require(stars >= 1 && stars <= 100, "stars must be 1-100");
         require(
             block.timestamp >= lastEndlessClaim[msg.sender] + endlessCooldown,
             "endless cooldown active"
