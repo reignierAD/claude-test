@@ -60,7 +60,7 @@ public class Card : MonoBehaviour
         // rounded corners as the card and never show white side bars
         var faceRt = Ui.Rect("Face", rt, new Vector2(s - 20f, s - 20f), Vector2.zero);
         var face = faceRt.gameObject.AddComponent<Image>();
-        face.sprite = SpriteFactory.RoundedRect;
+        face.sprite = SpriteFactory.RoundedRectInner;
         face.type = Image.Type.Sliced;
         face.color = new Color(1f, 0.99f, 0.95f);
         face.raycastTarget = false;

@@ -120,6 +120,15 @@ public class GameController : MonoBehaviour
         }
 
         img.color = s.backgroundColor;
+
+        // slowly spinning cartoon sunburst behind everything
+        var burstRt = Ui.Rect("Sunburst", bg, new Vector2(2400, 2400), Vector2.zero);
+        var burst = burstRt.gameObject.AddComponent<Image>();
+        burst.sprite = SpriteFactory.Sunburst;
+        burst.color = new Color(1f, 0.82f, 0.52f, 0.20f);
+        burst.raycastTarget = false;
+        burstRt.gameObject.AddComponent<SpinBackground>();
+
         // soft decorative blobs, roughly matching the event screen's warm look
         Deco(bg, new Vector2(-620, 380), 500, new Color(1f, 0.80f, 0.55f, 0.35f));
         Deco(bg, new Vector2(660, -400), 640, new Color(1f, 0.72f, 0.45f, 0.30f));
@@ -209,12 +218,12 @@ public class GameController : MonoBehaviour
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
             20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -23), new Vector2(560, 30), style: FontStyle.Normal);
 
-        // power-ups remaining (slim strip along the very bottom)
-        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(620, 46), new Vector2(0, 28), new Vector2(0.5f, 0f));
-        Ui.Panel(itemsPanel, new Color(1f, 1f, 1f, 0.75f));
+        // power-ups remaining (top-left chip, mirroring the star counter)
+        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(470, 54), new Vector2(270, -62), new Vector2(0f, 1f));
+        Ui.BorderPanel(itemsPanel, new Color(1f, 1f, 1f, 0.88f), new Color(0.90f, 0.68f, 0.38f), 4f);
         Ui.Label("ItemsLeftText", itemsPanel,
-            "Power-ups left   —   Remove: " + _invRemove + "     Undo: " + _invUndo + "     Refresh: " + _invRefresh,
-            20, SoftBrown, Vector2.zero, new Vector2(580, 36), style: FontStyle.Normal);
+            "Power-ups    Remove " + _invRemove + "   ·   Undo " + _invUndo + "   ·   Refresh " + _invRefresh,
+            20, SoftBrown, Vector2.zero, new Vector2(440, 36), style: FontStyle.Normal);
 
         // wallet corner (bottom right)
         BuildWalletCorner();
@@ -246,7 +255,7 @@ public class GameController : MonoBehaviour
         var fillRt = Ui.Stretch("Fill", body);
         fillRt.offsetMin = new Vector2(5f, 5f);
         fillRt.offsetMax = new Vector2(-5f, -5f);
-        var fillImg = Ui.Panel(fillRt, fill);
+        var fillImg = Ui.PanelInner(fillRt, fill);
         fillImg.raycastTarget = false;
 
         var btn = root.gameObject.AddComponent<Button>();
@@ -661,9 +670,9 @@ public class GameController : MonoBehaviour
             var mainOutline = main.gameObject.AddComponent<Outline>();
             mainOutline.effectColor = Color.white;
             mainOutline.effectDistance = new Vector2(3f, -3f);
-            var mainOutline2 = main.gameObject.AddComponent<Outline>();
-            mainOutline2.effectColor = new Color(0.35f, 0.18f, 0.05f, 0.55f);
-            mainOutline2.effectDistance = new Vector2(-4f, -6f);
+            var mainShadow = main.gameObject.AddComponent<Shadow>();
+            mainShadow.effectColor = new Color(0.35f, 0.18f, 0.05f, 0.60f);
+            mainShadow.effectDistance = new Vector2(0f, -5f);
 
             var pts = Ui.Label("Points", rt, "+" + points, size / 2 + 6, StarGold,
                 new Vector2(0, -42), new Vector2(700, 60));
@@ -1025,9 +1034,9 @@ public class GameController : MonoBehaviour
         var titleOutline = titleText.gameObject.AddComponent<Outline>();
         titleOutline.effectColor = Color.white;
         titleOutline.effectDistance = new Vector2(3f, -3f);
-        var titleShadow = titleText.gameObject.AddComponent<Outline>();
-        titleShadow.effectColor = new Color(0.40f, 0.22f, 0.08f, 0.35f);
-        titleShadow.effectDistance = new Vector2(-4f, -6f);
+        var titleShadow = titleText.gameObject.AddComponent<Shadow>();
+        titleShadow.effectColor = new Color(0.42f, 0.24f, 0.08f, 0.60f);
+        titleShadow.effectDistance = new Vector2(0f, -5f);
         Tween.ScaleIn((RectTransform)titleText.transform, 0.05f, 0.4f);
         return panel;
     }

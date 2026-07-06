@@ -65,6 +65,19 @@ public static class Ui
     }
 
     /// <summary>
+    /// Rounded panel with a smaller corner radius, for fills nested inside a
+    /// border so both curves stay concentric.
+    /// </summary>
+    public static Image PanelInner(RectTransform rt, Color color)
+    {
+        var img = rt.gameObject.AddComponent<Image>();
+        img.color = color;
+        img.sprite = SpriteFactory.RoundedRectInner;
+        img.type = Image.Type.Sliced;
+        return img;
+    }
+
+    /// <summary>
     /// Rounded panel with a contrasting border: the root image is the border
     /// color and a stretched child, inset by the border width, is the fill.
     /// Children added afterwards draw above the fill.
@@ -75,7 +88,7 @@ public static class Ui
         var fillRt = Stretch("Fill", rt);
         fillRt.offsetMin = new Vector2(borderWidth, borderWidth);
         fillRt.offsetMax = new Vector2(-borderWidth, -borderWidth);
-        var img = Panel(fillRt, fill);
+        var img = PanelInner(fillRt, fill);
         img.raycastTarget = false;
         return img;
     }
@@ -117,7 +130,7 @@ public static class Ui
         var fillRt = Stretch("Fill", body);
         fillRt.offsetMin = new Vector2(4f, 4f);
         fillRt.offsetMax = new Vector2(-4f, -4f);
-        var fillImg = Panel(fillRt, bg);
+        var fillImg = PanelInner(fillRt, bg);
 
         var btn = rt.gameObject.AddComponent<Button>();
         btn.targetGraphic = fillImg; // disabled/pressed tint covers the body

@@ -7,9 +7,11 @@ using UnityEngine;
 public static class SpriteFactory
 {
     static Sprite _rounded;
+    static Sprite _roundedInner;
     static Sprite _circle;
     static Sprite _star;
     static Sprite _arrow;
+    static Sprite _sunburst;
 
     /// <summary>White rounded-rect, 9-sliced so it scales to any size.</summary>
     public static Sprite RoundedRect
@@ -19,6 +21,60 @@ public static class SpriteFactory
             if (_rounded == null) _rounded = BuildRoundedRect(64, 16f);
             return _rounded;
         }
+    }
+
+    /// <summary>
+    /// Rounded-rect with a smaller corner radius, for fills nested inside a
+    /// border so the inner curve stays concentric with the outer one.
+    /// </summary>
+    public static Sprite RoundedRectInner
+    {
+        get
+        {
+            if (_roundedInner == null) _roundedInner = BuildRoundedRect(64, 10f);
+            return _roundedInner;
+        }
+    }
+
+    /// <summary>White radial sunburst (alternating transparent rays).</summary>
+    public static Sprite Sunburst
+    {
+        get
+        {
+            if (_sunburst == null) _sunburst = BuildSunburst(256, 24);
+            return _sunburst;
+        }
+    }
+
+    static Sprite BuildSunburst(int size, int rays)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        var pixels = new Color[size * size];
+        float half = size * 0.5f;
+        float wedge = Mathf.PI * 2f / rays;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+                for (int sy = 0; sy < 2; sy++)
+                {
+                    for (int sx = 0; sx < 2; sx++)
+                    {
+                        float px = x + 0.25f + sx * 0.5f - half;
+                        float py = y + 0.25f + sy * 0.5f - half;
+                        if (Mathf.Sqrt(px * px + py * py) > half - 1f) continue;
+                        float ang = Mathf.Atan2(py, px) + Mathf.PI;
+                        if ((int)(ang / wedge) % 2 == 0) hits++;
+                    }
+                }
+                pixels[y * size + x] = new Color(1f, 1f, 1f, hits / 4f);
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
     }
 
     /// <summary>White filled circle.</summary>
