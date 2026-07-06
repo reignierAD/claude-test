@@ -96,13 +96,14 @@ public class Board
     /// </summary>
     static List<Vector2Int> PickPositions(int count, int layer, int totalLayers, System.Random rng)
     {
-        int maxCol = Mathf.Max(3, MaxCol - layer);
-        int maxRow = Mathf.Max(2, MaxRow - layer / 2);
-
-        // widen columns first, then rows — and never past the hard bounds,
-        // so a crowded layer spreads sideways instead of climbing the screen
+        // dynamic footprint: start compact and widen with the layer's card
+        // count, so small levels cluster together while big boards spread
+        // across the whole zone. Columns grow first, rows are hard-capped.
+        int maxRow = count <= 9 ? 2 : Mathf.Max(2, MaxRow - layer / 2);
+        int maxCol = 3;
+        int target = Mathf.Max(count, Mathf.CeilToInt(count * 1.4f));
         var lattice = BuildLattice(maxCol, maxRow);
-        while (lattice.Count < count && (maxCol < MaxCol || maxRow < MaxRow))
+        while (lattice.Count < target && (maxCol < MaxCol || maxRow < MaxRow))
         {
             if (maxCol < MaxCol) maxCol++;
             else maxRow++;

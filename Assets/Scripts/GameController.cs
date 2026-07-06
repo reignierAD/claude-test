@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,6 +24,15 @@ public class GameController : MonoBehaviour
     static readonly Color ButtonRose = new Color(0.95f, 0.55f, 0.50f);
     static readonly Color WalletTeal = new Color(0.25f, 0.62f, 0.58f);
     static readonly Color SoftBrown = new Color(0.55f, 0.45f, 0.35f);
+
+    // combo pop colors, escalating with the multiplier (x2, x3, x4, x5)
+    static readonly Color[] ComboColors =
+    {
+        new Color(0.96f, 0.62f, 0.25f),
+        new Color(0.95f, 0.45f, 0.40f),
+        new Color(0.75f, 0.45f, 0.95f),
+        new Color(1.00f, 0.78f, 0.15f),
+    };
 
     // ---- scene refs ----
     RectTransform _canvasRoot;
@@ -314,11 +324,11 @@ public class GameController : MonoBehaviour
 
         // hold area (bottom left) — Remove item drops cards here
         _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 138), new Vector2(-480, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0.55f), new Color(0.42f, 0.36f, 0.31f, 0.95f));
+        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0.30f), new Color(0.42f, 0.36f, 0.31f, 0.70f));
 
         // clearing zone (bottom center, dropped lower for breathing room)
         _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 138), new Vector2(160, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0.98f), new Color(0.85f, 0.52f, 0.20f));
+        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0.45f), new Color(0.85f, 0.52f, 0.20f, 0.80f));
 
         // toast / combo text
         _toastText = Ui.Label("Toast", _gameScreen, "", 38, DeepOrange,
@@ -546,7 +556,61 @@ public class GameController : MonoBehaviour
 
         int points = GameConfig.MatchScore * _combo;
         _score += points;
-        Toast(_combo > 1 ? "+" + points + "   Combo x" + _combo + "!" : "+" + points);
+        if (_combo > 1) ComboPop(points, _combo);
+        else Toast("+" + points);
+    }
+
+    /// <summary>
+    /// Big celebratory "COMBO xN!" that bounces in at a random spot on the
+    /// screen, floats up and fades out.
+    /// </summary>
+    void ComboPop(int points, int combo)
+    {
+        var pos = new Vector2(Random.Range(-380f, 300f), Random.Range(-60f, 230f));
+        var rt = Ui.Rect("ComboPop", _gameScreen, new Vector2(700, 150), pos);
+        rt.localEulerAngles = new Vector3(0f, 0f, Random.Range(-12f, 12f));
+        var group = rt.gameObject.AddComponent<CanvasGroup>();
+        group.blocksRaycasts = false;
+
+        int size = 54 + combo * 12; // bigger combo, bigger pop
+        Color color = ComboColors[Mathf.Clamp(combo - 2, 0, ComboColors.Length - 1)];
+
+        var main = Ui.Label("Combo", rt, "COMBO  x" + combo + "!", size, color,
+            new Vector2(0, 18), new Vector2(700, 100));
+        var mainOutline = main.gameObject.AddComponent<Outline>();
+        mainOutline.effectColor = Color.white;
+        mainOutline.effectDistance = new Vector2(3f, -3f);
+        var mainOutline2 = main.gameObject.AddComponent<Outline>();
+        mainOutline2.effectColor = new Color(0.35f, 0.18f, 0.05f, 0.55f);
+        mainOutline2.effectDistance = new Vector2(-4f, -6f);
+
+        var pts = Ui.Label("Points", rt, "+" + points, size / 2 + 6, StarGold,
+            new Vector2(0, -42), new Vector2(700, 60));
+        var ptsOutline = pts.gameObject.AddComponent<Outline>();
+        ptsOutline.effectColor = Color.white;
+        ptsOutline.effectDistance = new Vector2(2f, -2f);
+
+        Tween.ScaleIn(rt, 0f, 0.4f);
+        StartCoroutine(ComboFade(rt, group));
+    }
+
+    IEnumerator ComboFade(RectTransform rt, CanvasGroup group)
+    {
+        yield return new WaitForSeconds(0.8f);
+        if (rt == null) yield break;
+        Vector2 start = rt.anchoredPosition;
+        float t = 0f;
+        const float dur = 0.5f;
+        while (t < dur)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / dur);
+            rt.anchoredPosition = start + new Vector2(0f, 90f * p);
+            group.alpha = 1f - p;
+            yield return null;
+        }
+        if (rt != null) Destroy(rt.gameObject);
     }
 
     void CheckCleared()

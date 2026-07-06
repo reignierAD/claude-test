@@ -51,29 +51,33 @@ public class Card : MonoBehaviour
         frame.type = Image.Type.Sliced;
         frame.color = new Color(0.95f, 0.70f, 0.38f);
 
+        // the face doubles as a stencil mask, so pictures get the same
+        // rounded corners as the card and never show white side bars
         var faceRt = Ui.Rect("Face", rt, new Vector2(s - 10f, s - 10f), Vector2.zero);
         var face = faceRt.gameObject.AddComponent<Image>();
         face.sprite = SpriteFactory.RoundedRect;
         face.type = Image.Type.Sliced;
         face.color = new Color(1f, 0.99f, 0.95f);
         face.raycastTarget = false;
+        var faceMask = faceRt.gameObject.AddComponent<Mask>();
+        faceMask.showMaskGraphic = true;
 
         card.button = go.AddComponent<Button>();
         card.button.targetGraphic = frame;
         card.button.onClick.AddListener(() => card.onClicked?.Invoke(card));
 
         // placeholder art (used when the kind has no sprite): rim + circle + shine
-        var rimRt = Ui.Rect("IconRim", rt, new Vector2(80, 80), Vector2.zero);
+        var rimRt = Ui.Rect("IconRim", faceRt, new Vector2(80, 80), Vector2.zero);
         card._iconRim = rimRt.gameObject.AddComponent<Image>();
         card._iconRim.sprite = SpriteFactory.Circle;
         card._iconRim.raycastTarget = false;
 
-        var iconRt = Ui.Rect("Icon", rt, new Vector2(72, 72), Vector2.zero);
+        var iconRt = Ui.Rect("Icon", faceRt, new Vector2(72, 72), Vector2.zero);
         card._icon = iconRt.gameObject.AddComponent<Image>();
         card._icon.sprite = SpriteFactory.Circle;
         card._icon.raycastTarget = false;
 
-        var hlRt = Ui.Rect("Highlight", rt, new Vector2(18, 18), new Vector2(-16, 18));
+        var hlRt = Ui.Rect("Highlight", faceRt, new Vector2(18, 18), new Vector2(-16, 18));
         card._highlight = hlRt.gameObject.AddComponent<Image>();
         card._highlight.sprite = SpriteFactory.Circle;
         card._highlight.color = new Color(1f, 1f, 1f, 0.55f);
@@ -84,24 +88,29 @@ public class Card : MonoBehaviour
         // generated back is used.
         var backRt = Ui.Rect("Back", rt, new Vector2(s, s), Vector2.zero);
         var backImg = backRt.gameObject.AddComponent<Image>();
+        backImg.sprite = SpriteFactory.RoundedRect;
+        backImg.type = Image.Type.Sliced;
+        backImg.color = new Color(0.62f, 0.42f, 0.28f);
+        backImg.raycastTarget = false;
+        var backMask = backRt.gameObject.AddComponent<Mask>();
+        backMask.showMaskGraphic = true;
         var customBack = GameConfig.S.cardBackSprite;
         if (customBack != null)
         {
-            backImg.sprite = customBack;
-            backImg.color = Color.white;
+            // custom picture fills the back edge-to-edge, corners masked round
+            var backPicRt = Ui.Stretch("BackPicture", backRt);
+            var backPic = backPicRt.gameObject.AddComponent<Image>();
+            backPic.sprite = customBack;
+            backPic.raycastTarget = false;
         }
         else
         {
-            backImg.sprite = SpriteFactory.RoundedRect;
-            backImg.type = Image.Type.Sliced;
-            backImg.color = new Color(0.62f, 0.42f, 0.28f);
             var emblemRt = Ui.Rect("Emblem", backRt, new Vector2(44, 44), Vector2.zero);
             var emblem = emblemRt.gameObject.AddComponent<Image>();
             emblem.sprite = SpriteFactory.Circle;
             emblem.color = new Color(0.78f, 0.58f, 0.40f);
             emblem.raycastTarget = false;
         }
-        backImg.raycastTarget = false;
         card._back = backRt.gameObject;
         card._back.SetActive(false);
 
@@ -131,22 +140,28 @@ public class Card : MonoBehaviour
 
         _iconRim.gameObject.SetActive(!hasSprite);
         _highlight.gameObject.SetActive(!hasSprite);
-        iconRt.anchoredPosition = Vector2.zero;
 
         if (hasSprite)
         {
-            // the picture fills the card face
+            // the picture fills the masked face edge-to-edge (no white bars),
+            // and the mask rounds its corners
+            iconRt.anchorMin = Vector2.zero;
+            iconRt.anchorMax = Vector2.one;
+            iconRt.offsetMin = Vector2.zero;
+            iconRt.offsetMax = Vector2.zero;
             _icon.sprite = kind.sprite;
             _icon.color = Color.white;
-            _icon.preserveAspect = true;
-            iconRt.sizeDelta = new Vector2(96, 96);
+            _icon.preserveAspect = false;
         }
         else
         {
+            iconRt.anchorMin = new Vector2(0.5f, 0.5f);
+            iconRt.anchorMax = new Vector2(0.5f, 0.5f);
+            iconRt.sizeDelta = new Vector2(72, 72);
+            iconRt.anchoredPosition = Vector2.zero;
             _icon.sprite = SpriteFactory.Circle;
             _icon.color = kind.color;
             _icon.preserveAspect = false;
-            iconRt.sizeDelta = new Vector2(72, 72);
 
             Color rim = Color.Lerp(kind.color, Color.black, 0.38f);
             rim.a = 1f;
