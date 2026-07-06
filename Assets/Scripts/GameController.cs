@@ -303,7 +303,7 @@ public class GameController : MonoBehaviour
 
         // board play area: subtle backdrop marking where cards can appear,
         // then the board root itself
-        var boardZone = Ui.Rect("BoardZone", _gameScreen, new Vector2(1150, 500), new Vector2(-40, 90));
+        var boardZone = Ui.Rect("BoardZone", _gameScreen, new Vector2(1210, 500), new Vector2(-40, 90));
         var zoneImg = Ui.Panel(boardZone, new Color(1f, 1f, 1f, 0.20f));
         zoneImg.raycastTarget = false;
         _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 90));
@@ -313,12 +313,12 @@ public class GameController : MonoBehaviour
         _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 245), new Vector2(0.5f, 0f));
 
         // hold area (bottom left) — Remove item drops cards here
-        _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 132), new Vector2(-480, 85), new Vector2(0.5f, 0f));
-        Ui.Panel(_holdRoot, new Color(0.45f, 0.40f, 0.36f, 0.45f));
+        _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 138), new Vector2(-480, 85), new Vector2(0.5f, 0f));
+        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0.55f), new Color(0.42f, 0.36f, 0.31f, 0.95f));
 
         // clearing zone (bottom center, dropped lower for breathing room)
-        _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 132), new Vector2(160, 85), new Vector2(0.5f, 0f));
-        Ui.Panel(_trayRoot, new Color(0.98f, 0.72f, 0.35f, 0.95f));
+        _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 138), new Vector2(160, 85), new Vector2(0.5f, 0f));
+        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0.98f), new Color(0.85f, 0.52f, 0.20f));
 
         // toast / combo text
         _toastText = Ui.Label("Toast", _gameScreen, "", 38, DeepOrange,
@@ -414,6 +414,11 @@ public class GameController : MonoBehaviour
 
         int side = Mathf.Max(0, def.sideStackCards);
         int boardTiles = Mathf.Max(3, (def.tiles + 2) / 3 * 3);
+        // the board can only hold so many cards — clamp before building the
+        // bag so every card in it always gets placed
+        int layers = Mathf.Clamp(def.layers, 1, 6);
+        int maxBoard = Board.CapacityFor(layers) / 3 * 3;
+        if (boardTiles > maxBoard) boardTiles = maxBoard;
         int total = boardTiles + side * 2;
         while (total % 3 != 0) { boardTiles++; total++; }
         int types = Mathf.Clamp(def.cardVarieties, 1, GameConfig.S.cardKinds.Length);

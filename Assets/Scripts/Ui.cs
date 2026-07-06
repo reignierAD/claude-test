@@ -64,6 +64,22 @@ public static class Ui
         return img;
     }
 
+    /// <summary>
+    /// Rounded panel with a contrasting border: the root image is the border
+    /// color and a stretched child, inset by the border width, is the fill.
+    /// Children added afterwards draw above the fill.
+    /// </summary>
+    public static Image BorderPanel(RectTransform rt, Color fill, Color border, float borderWidth = 6f)
+    {
+        Panel(rt, border);
+        var fillRt = Stretch("Fill", rt);
+        fillRt.offsetMin = new Vector2(borderWidth, borderWidth);
+        fillRt.offsetMax = new Vector2(-borderWidth, -borderWidth);
+        var img = Panel(fillRt, fill);
+        img.raycastTarget = false;
+        return img;
+    }
+
     public static Text Label(string name, Transform parent, string content, int fontSize, Color color,
         Vector2 pos, Vector2 size, TextAnchor align = TextAnchor.MiddleCenter,
         FontStyle style = FontStyle.Bold, Vector2? anchor = null, bool wrap = false)

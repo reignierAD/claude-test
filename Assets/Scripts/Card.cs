@@ -28,7 +28,6 @@ public class Card : MonoBehaviour
     Image _icon;
     Image _iconRim;
     Image _highlight;
-    Text _label;
     GameObject _shade;
     GameObject _back;
 
@@ -45,35 +44,40 @@ public class Card : MonoBehaviour
         var card = go.AddComponent<Card>();
         card.typeIndex = typeIndex;
 
-        // face
-        var face = go.AddComponent<Image>();
+        // border frame: the root image is a warm rounded frame, with a white
+        // face inset inside it
+        var frame = go.AddComponent<Image>();
+        frame.sprite = SpriteFactory.RoundedRect;
+        frame.type = Image.Type.Sliced;
+        frame.color = new Color(0.95f, 0.70f, 0.38f);
+
+        var faceRt = Ui.Rect("Face", rt, new Vector2(s - 10f, s - 10f), Vector2.zero);
+        var face = faceRt.gameObject.AddComponent<Image>();
         face.sprite = SpriteFactory.RoundedRect;
         face.type = Image.Type.Sliced;
         face.color = new Color(1f, 0.99f, 0.95f);
+        face.raycastTarget = false;
 
         card.button = go.AddComponent<Button>();
-        card.button.targetGraphic = face;
+        card.button.targetGraphic = frame;
         card.button.onClick.AddListener(() => card.onClicked?.Invoke(card));
 
-        // icon: darker rim circle behind a full-color circle, plus a highlight dot
-        var rimRt = Ui.Rect("IconRim", rt, new Vector2(66, 66), new Vector2(0, 12));
+        // placeholder art (used when the kind has no sprite): rim + circle + shine
+        var rimRt = Ui.Rect("IconRim", rt, new Vector2(80, 80), Vector2.zero);
         card._iconRim = rimRt.gameObject.AddComponent<Image>();
         card._iconRim.sprite = SpriteFactory.Circle;
         card._iconRim.raycastTarget = false;
 
-        var iconRt = Ui.Rect("Icon", rt, new Vector2(58, 58), new Vector2(0, 12));
+        var iconRt = Ui.Rect("Icon", rt, new Vector2(72, 72), Vector2.zero);
         card._icon = iconRt.gameObject.AddComponent<Image>();
         card._icon.sprite = SpriteFactory.Circle;
         card._icon.raycastTarget = false;
 
-        var hlRt = Ui.Rect("Highlight", rt, new Vector2(16, 16), new Vector2(-12, 26));
+        var hlRt = Ui.Rect("Highlight", rt, new Vector2(18, 18), new Vector2(-16, 18));
         card._highlight = hlRt.gameObject.AddComponent<Image>();
         card._highlight.sprite = SpriteFactory.Circle;
         card._highlight.color = new Color(1f, 1f, 1f, 0.55f);
         card._highlight.raycastTarget = false;
-
-        card._label = Ui.Label("Name", rt, "", 17, new Color(0.45f, 0.30f, 0.15f),
-            new Vector2(0, -36), new Vector2(s, 24));
 
         // card back, shown while face-down in a side pile. A custom picture
         // can be assigned in GameSettings > Card Back; otherwise a plain
@@ -116,8 +120,8 @@ public class Card : MonoBehaviour
     }
 
     /// <summary>
-    /// Re-applies the kind's picture (or placeholder color) and name. Called
-    /// on creation and after a Refresh item shuffles types.
+    /// Re-applies the kind's picture (or placeholder color). Called on
+    /// creation and after a Refresh item shuffles types.
     /// </summary>
     public void RefreshVisual()
     {
@@ -127,29 +131,27 @@ public class Card : MonoBehaviour
 
         _iconRim.gameObject.SetActive(!hasSprite);
         _highlight.gameObject.SetActive(!hasSprite);
+        iconRt.anchoredPosition = Vector2.zero;
 
         if (hasSprite)
         {
+            // the picture fills the card face
             _icon.sprite = kind.sprite;
             _icon.color = Color.white;
             _icon.preserveAspect = true;
-            iconRt.sizeDelta = new Vector2(86, 86);
-            iconRt.anchoredPosition = new Vector2(0, 10);
+            iconRt.sizeDelta = new Vector2(96, 96);
         }
         else
         {
             _icon.sprite = SpriteFactory.Circle;
             _icon.color = kind.color;
             _icon.preserveAspect = false;
-            iconRt.sizeDelta = new Vector2(58, 58);
-            iconRt.anchoredPosition = new Vector2(0, 12);
+            iconRt.sizeDelta = new Vector2(72, 72);
 
             Color rim = Color.Lerp(kind.color, Color.black, 0.38f);
             rim.a = 1f;
             _iconRim.color = rim;
         }
-
-        _label.text = kind.cardName;
     }
 
     public void SetBlocked(bool blocked)

@@ -11,9 +11,19 @@ using UnityEngine;
 public class Board
 {
     // Play-area bounds in half-steps: cards spread wide across the screen
-    // but never wander below/above the clean board zone.
-    public const int MaxCol = 8;
+    // but never wander below/above the clean board zone (rows are hard-capped
+    // so the pile can never climb over the HUD stars).
+    public const int MaxCol = 9;
     public const int MaxRow = 3;
+
+    /// <summary>Most cards a single fully-expanded layer can hold.</summary>
+    public static int LayerCapacity => (MaxCol + 1) * (MaxRow + 1);
+
+    /// <summary>Most cards a board with this many layers can hold.</summary>
+    public static int CapacityFor(int layers)
+    {
+        return Mathf.Clamp(layers, 1, 6) * LayerCapacity;
+    }
 
     public readonly List<Card> cards = new List<Card>();
 
@@ -31,10 +41,11 @@ public class Board
     {
         Clear();
 
-        // sanitize designer input: multiples of 3, valid ranges
-        int tiles = presetBag != null ? presetBag.Count : Mathf.Max(3, (level.tiles + 2) / 3 * 3);
+        // sanitize designer input: multiples of 3, valid ranges, capacity
         int types = Mathf.Clamp(level.cardVarieties, 1, GameConfig.S.cardKinds.Length);
         int layers = Mathf.Clamp(level.layers, 1, 6);
+        int tiles = presetBag != null ? presetBag.Count : Mathf.Max(3, (level.tiles + 2) / 3 * 3);
+        tiles = Mathf.Min(tiles, CapacityFor(layers));
 
         // one container per layer => sibling order gives correct draw order
         for (int l = 0; l < layers; l++)
@@ -88,15 +99,14 @@ public class Board
         int maxCol = Mathf.Max(3, MaxCol - layer);
         int maxRow = Mathf.Max(2, MaxRow - layer / 2);
 
-        List<Vector2Int> lattice;
-        while (true)
+        // widen columns first, then rows — and never past the hard bounds,
+        // so a crowded layer spreads sideways instead of climbing the screen
+        var lattice = BuildLattice(maxCol, maxRow);
+        while (lattice.Count < count && (maxCol < MaxCol || maxRow < MaxRow))
         {
-            lattice = new List<Vector2Int>();
-            for (int c = -maxCol; c <= maxCol; c += 2)
-                for (int r = -maxRow; r <= maxRow; r += 2)
-                    lattice.Add(new Vector2Int(c, r));
-            if (lattice.Count >= count || (maxCol >= MaxCol && maxRow >= MaxRow)) break;
-            if (maxCol <= maxRow * 2 && maxCol < MaxCol) maxCol++; else maxRow++;
+            if (maxCol < MaxCol) maxCol++;
+            else maxRow++;
+            lattice = BuildLattice(maxCol, maxRow);
         }
 
         Shuffle(lattice, rng);
@@ -130,14 +140,24 @@ public class Board
         return chosen;
     }
 
+    static List<Vector2Int> BuildLattice(int maxCol, int maxRow)
+    {
+        var lattice = new List<Vector2Int>();
+        for (int c = -maxCol; c <= maxCol; c += 2)
+            for (int r = -maxRow; r <= maxRow; r += 2)
+                lattice.Add(new Vector2Int(c, r));
+        return lattice;
+    }
+
     static int[] SplitAcrossLayers(int total, int layers)
     {
-        // heavier at the bottom, lighter at the top
+        // heavier at the bottom, but only mildly, so big boards keep upper
+        // layers dense too
         var weights = new float[layers];
         float sum = 0f;
         for (int l = 0; l < layers; l++)
         {
-            weights[l] = layers - l * 0.6f;
+            weights[l] = layers - l * 0.45f;
             sum += weights[l];
         }
         var counts = new int[layers];
@@ -151,6 +171,23 @@ public class Board
         {
             counts[l]++;
             assigned++;
+        }
+
+        // no layer may exceed its slot capacity — push overflow to the other
+        // layers so every card in the bag is always placed
+        int cap = LayerCapacity;
+        int carry = 0;
+        for (int l = 0; l < layers; l++)
+        {
+            counts[l] += carry;
+            carry = Mathf.Max(0, counts[l] - cap);
+            counts[l] -= carry;
+        }
+        for (int l = 0; l < layers && carry > 0; l++)
+        {
+            int add = Mathf.Min(cap - counts[l], carry);
+            counts[l] += add;
+            carry -= add;
         }
         return counts;
     }
