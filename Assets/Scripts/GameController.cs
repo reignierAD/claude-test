@@ -66,6 +66,7 @@ public class GameController : MonoBehaviour
 
     int _usedRemove, _usedUndo, _usedRefresh;
     int _invRemove, _invUndo, _invRefresh;
+    bool _transitioning;
 
     // ---- HUD refs ----
     Text _stageText, _timerText, _scoreText, _toastText;
@@ -399,16 +400,22 @@ public class GameController : MonoBehaviour
 
     void StartLevel(int index)
     {
-        _levelIndex = index;
-        _endlessRound = 0;
-        BeginSession(GameConfig.S.GetLevel(index));
+        TransitionTo(() =>
+        {
+            _levelIndex = index;
+            _endlessRound = 0;
+            BeginSession(GameConfig.S.GetLevel(index));
+        });
     }
 
     void StartEndless()
     {
-        _levelIndex = -1;
-        _endlessRound = 1;
-        BeginSession(GameConfig.S.GetEndlessRound(_rng));
+        TransitionTo(() =>
+        {
+            _levelIndex = -1;
+            _endlessRound = 1;
+            BeginSession(GameConfig.S.GetEndlessRound(_rng));
+        });
     }
 
     void BeginSession(GameSettings.LevelDef def)
@@ -501,8 +508,54 @@ public class GameController : MonoBehaviour
 
     void ExitToMenu()
     {
-        ClearTable();
-        ShowMenu();
+        TransitionTo(() =>
+        {
+            ClearTable();
+            ShowMenu();
+        });
+    }
+
+    /// <summary>
+    /// Soft warm fade that covers the screen, swaps to the next screen at
+    /// full cover, then fades back out. Blocks input while running.
+    /// </summary>
+    void TransitionTo(System.Action swap)
+    {
+        if (_transitioning) return;
+        _transitioning = true;
+        StartCoroutine(TransitionRoutine(swap));
+    }
+
+    IEnumerator TransitionRoutine(System.Action swap)
+    {
+        var overlay = Ui.Stretch("Transition", _canvasRoot);
+        var img = overlay.gameObject.AddComponent<Image>();
+        var tint = new Color(1f, 0.92f, 0.80f);
+        img.color = new Color(tint.r, tint.g, tint.b, 0f);
+        img.raycastTarget = true; // swallow clicks during the swap
+
+        float t = 0f;
+        const float fadeIn = 0.22f;
+        while (t < fadeIn)
+        {
+            t += Time.deltaTime;
+            img.color = new Color(tint.r, tint.g, tint.b, Mathf.Clamp01(t / fadeIn));
+            yield return null;
+        }
+
+        swap();
+        overlay.SetAsLastSibling(); // stay above whatever the swap built
+
+        t = 0f;
+        const float fadeOut = 0.30f;
+        while (t < fadeOut)
+        {
+            t += Time.deltaTime;
+            img.color = new Color(tint.r, tint.g, tint.b, 1f - Mathf.Clamp01(t / fadeOut));
+            yield return null;
+        }
+        Destroy(overlay.gameObject);
+        _transitioning = false;
     }
 
     // =====================================================================
@@ -575,41 +628,51 @@ public class GameController : MonoBehaviour
 
         int points = GameConfig.MatchScore * _combo;
         _score += points;
-        if (_combo > 1) ComboPop(points, _combo);
-        else Toast("+" + points);
+        ScorePop(points, _combo);
     }
 
     /// <summary>
-    /// Big celebratory "COMBO xN!" that bounces in at a random spot on the
-    /// screen, floats up and fades out.
+    /// Score feedback that bounces in at a random spot, floats up and fades:
+    /// a simple "+N" for single matches, a big "COMBO xN!" for combos.
     /// </summary>
-    void ComboPop(int points, int combo)
+    void ScorePop(int points, int combo)
     {
         var pos = new Vector2(Random.Range(-380f, 300f), Random.Range(-60f, 230f));
-        var rt = Ui.Rect("ComboPop", _gameScreen, new Vector2(700, 150), pos);
+        var rt = Ui.Rect("ScorePop", _gameScreen, new Vector2(700, 150), pos);
         rt.localEulerAngles = new Vector3(0f, 0f, Random.Range(-12f, 12f));
         var group = rt.gameObject.AddComponent<CanvasGroup>();
         group.blocksRaycasts = false;
 
-        int size = 54 + combo * 12; // bigger combo, bigger pop
-        Color color = ComboColors[Mathf.Clamp(combo - 2, 0, ComboColors.Length - 1)];
+        if (combo <= 1)
+        {
+            var solo = Ui.Label("Points", rt, "+" + points, 52, Orange,
+                Vector2.zero, new Vector2(700, 80));
+            var soloOutline = solo.gameObject.AddComponent<Outline>();
+            soloOutline.effectColor = Color.white;
+            soloOutline.effectDistance = new Vector2(2f, -2f);
+        }
+        else
+        {
+            int size = 54 + combo * 12; // bigger combo, bigger pop
+            Color color = ComboColors[Mathf.Clamp(combo - 2, 0, ComboColors.Length - 1)];
 
-        var main = Ui.Label("Combo", rt, "COMBO  x" + combo + "!", size, color,
-            new Vector2(0, 18), new Vector2(700, 100));
-        var mainOutline = main.gameObject.AddComponent<Outline>();
-        mainOutline.effectColor = Color.white;
-        mainOutline.effectDistance = new Vector2(3f, -3f);
-        var mainOutline2 = main.gameObject.AddComponent<Outline>();
-        mainOutline2.effectColor = new Color(0.35f, 0.18f, 0.05f, 0.55f);
-        mainOutline2.effectDistance = new Vector2(-4f, -6f);
+            var main = Ui.Label("Combo", rt, "COMBO  x" + combo + "!", size, color,
+                new Vector2(0, 18), new Vector2(700, 100));
+            var mainOutline = main.gameObject.AddComponent<Outline>();
+            mainOutline.effectColor = Color.white;
+            mainOutline.effectDistance = new Vector2(3f, -3f);
+            var mainOutline2 = main.gameObject.AddComponent<Outline>();
+            mainOutline2.effectColor = new Color(0.35f, 0.18f, 0.05f, 0.55f);
+            mainOutline2.effectDistance = new Vector2(-4f, -6f);
 
-        var pts = Ui.Label("Points", rt, "+" + points, size / 2 + 6, StarGold,
-            new Vector2(0, -42), new Vector2(700, 60));
-        var ptsOutline = pts.gameObject.AddComponent<Outline>();
-        ptsOutline.effectColor = Color.white;
-        ptsOutline.effectDistance = new Vector2(2f, -2f);
+            var pts = Ui.Label("Points", rt, "+" + points, size / 2 + 6, StarGold,
+                new Vector2(0, -42), new Vector2(700, 60));
+            var ptsOutline = pts.gameObject.AddComponent<Outline>();
+            ptsOutline.effectColor = Color.white;
+            ptsOutline.effectDistance = new Vector2(2f, -2f);
+        }
 
-        Tween.ScaleIn(rt, 0f, 0.4f);
+        Tween.ScaleIn(rt, 0f, combo <= 1 ? 0.3f : 0.4f);
         StartCoroutine(ComboFade(rt, group));
     }
 
@@ -814,8 +877,8 @@ public class GameController : MonoBehaviour
 
     void Update()
     {
-        // timer pauses while any popup (quit confirmation etc.) is open
-        if (_state == State.Playing && _popupLayer == null)
+        // timer pauses while any popup or screen transition is running
+        if (_state == State.Playing && _popupLayer == null && !_transitioning)
         {
             _elapsed += Time.deltaTime;
             if (_levelIndex < 0 && GameConfig.S.endlessDuration > 0f && _elapsed >= GameConfig.S.endlessDuration)
@@ -954,7 +1017,8 @@ public class GameController : MonoBehaviour
         dim.color = new Color(0f, 0f, 0f, 0.55f); // also blocks clicks behind it
 
         var panel = Ui.Rect("Panel", _popupLayer, new Vector2(width, height), Vector2.zero);
-        Ui.Panel(panel, Cream);
+        Ui.BorderPanel(panel, Cream, new Color(0.90f, 0.62f, 0.30f), 7f);
+        Tween.ScaleIn(panel, 0f, 0.35f);
 
         var titleText = Ui.Label("Title", panel, title, 54, titleColor ?? DeepOrange,
             new Vector2(0, height * 0.5f - 62f), new Vector2(width - 80f, 66));

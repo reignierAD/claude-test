@@ -98,17 +98,38 @@ public static class Ui
         return text;
     }
 
+    /// <summary>
+    /// Every button gets the raised "bump" look: a dark drop shadow behind a
+    /// bordered body. Border and shadow tones are derived from the fill.
+    /// </summary>
     public static Button MakeButton(string name, Transform parent, string label, Vector2 size, Vector2 pos,
         Color bg, Color textColor, int fontSize, Action onClick, Vector2? anchor = null)
     {
         var rt = Rect(name, parent, size, pos, anchor);
-        var img = Panel(rt, bg);
+
+        var shadowRt = Rect("Shadow", rt, size, new Vector2(0f, -5f));
+        var shadowImg = Panel(shadowRt, Darken(bg, 0.50f, 0.85f));
+        shadowImg.raycastTarget = false;
+
+        var body = Rect("Body", rt, size, Vector2.zero);
+        var borderImg = Panel(body, Darken(bg, 0.74f, 1f));
+        borderImg.raycastTarget = false;
+        var fillRt = Stretch("Fill", body);
+        fillRt.offsetMin = new Vector2(4f, 4f);
+        fillRt.offsetMax = new Vector2(-4f, -4f);
+        var fillImg = Panel(fillRt, bg);
+
         var btn = rt.gameObject.AddComponent<Button>();
-        btn.targetGraphic = img;
+        btn.targetGraphic = fillImg; // disabled/pressed tint covers the body
         if (!string.IsNullOrEmpty(label))
-            Label("Label", rt, label, fontSize, textColor, Vector2.zero, size);
+            Label("Label", body, label, fontSize, textColor, Vector2.zero, size);
         if (onClick != null)
             btn.onClick.AddListener(() => onClick());
         return btn;
+    }
+
+    static Color Darken(Color c, float factor, float alphaFactor)
+    {
+        return new Color(c.r * factor, c.g * factor, c.b * factor, c.a * alphaFactor);
     }
 }
