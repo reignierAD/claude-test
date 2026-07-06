@@ -22,6 +22,10 @@ public class Card : MonoBehaviour
     /// <summary>-1 = board card; 0 = left side stack; 1 = right side stack.</summary>
     public int stackSide = -1;
 
+    // small per-card pixel offset inside its grid cell, for an organic look
+    public float jitterX;
+    public float jitterY;
+
     public Button button;
     public Action<Card> onClicked;
 
@@ -33,7 +37,7 @@ public class Card : MonoBehaviour
 
     public RectTransform Rect => (RectTransform)transform;
 
-    public Vector2 BoardPosition => new Vector2(col * GameConfig.HalfStep, row * GameConfig.HalfStep);
+    public Vector2 BoardPosition => new Vector2(col * GameConfig.HalfStep + jitterX, row * GameConfig.HalfStep + jitterY);
 
     public static Card Create(Transform parent, int typeIndex)
     {
@@ -44,16 +48,17 @@ public class Card : MonoBehaviour
         var card = go.AddComponent<Card>();
         card.typeIndex = typeIndex;
 
-        // border frame: the root image is a warm rounded frame, with a white
-        // face inset inside it
-        var frame = go.AddComponent<Image>();
+        // border frame, slightly smaller than the logical grid cell so the
+        // random per-card spacing can never make neighbors overlap
+        var frameRt = Ui.Rect("Frame", rt, new Vector2(s - 8f, s - 8f), Vector2.zero);
+        var frame = frameRt.gameObject.AddComponent<Image>();
         frame.sprite = SpriteFactory.RoundedRect;
         frame.type = Image.Type.Sliced;
         frame.color = new Color(0.95f, 0.70f, 0.38f);
 
         // the face doubles as a stencil mask, so pictures get the same
         // rounded corners as the card and never show white side bars
-        var faceRt = Ui.Rect("Face", rt, new Vector2(s - 10f, s - 10f), Vector2.zero);
+        var faceRt = Ui.Rect("Face", rt, new Vector2(s - 20f, s - 20f), Vector2.zero);
         var face = faceRt.gameObject.AddComponent<Image>();
         face.sprite = SpriteFactory.RoundedRect;
         face.type = Image.Type.Sliced;
@@ -86,7 +91,7 @@ public class Card : MonoBehaviour
         // card back, shown while face-down in a side pile. A custom picture
         // can be assigned in GameSettings > Card Back; otherwise a plain
         // generated back is used.
-        var backRt = Ui.Rect("Back", rt, new Vector2(s, s), Vector2.zero);
+        var backRt = Ui.Rect("Back", rt, new Vector2(s - 8f, s - 8f), Vector2.zero);
         var backImg = backRt.gameObject.AddComponent<Image>();
         backImg.sprite = SpriteFactory.RoundedRect;
         backImg.type = Image.Type.Sliced;
@@ -115,7 +120,7 @@ public class Card : MonoBehaviour
         card._back.SetActive(false);
 
         // shade overlay shown while the card is covered by a higher layer
-        var shadeRt = Ui.Rect("Shade", rt, new Vector2(s, s), Vector2.zero);
+        var shadeRt = Ui.Rect("Shade", rt, new Vector2(s - 8f, s - 8f), Vector2.zero);
         var shadeImg = shadeRt.gameObject.AddComponent<Image>();
         shadeImg.sprite = SpriteFactory.RoundedRect;
         shadeImg.type = Image.Type.Sliced;

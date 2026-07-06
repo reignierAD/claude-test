@@ -20,7 +20,6 @@ public class GameController : MonoBehaviour
     static readonly Color DeepOrange = new Color(0.93f, 0.45f, 0.30f);
     static readonly Color Brown = new Color(0.45f, 0.30f, 0.15f);
     static readonly Color StarGold = new Color(1.00f, 0.78f, 0.15f);
-    static readonly Color StarDim = new Color(0.62f, 0.56f, 0.50f, 0.55f);
     static readonly Color ButtonRose = new Color(0.95f, 0.55f, 0.50f);
     static readonly Color WalletTeal = new Color(0.25f, 0.62f, 0.58f);
     static readonly Color SoftBrown = new Color(0.55f, 0.45f, 0.35f);
@@ -70,7 +69,7 @@ public class GameController : MonoBehaviour
 
     // ---- HUD refs ----
     Text _stageText, _timerText, _scoreText, _toastText;
-    readonly Image[] _hudStars = new Image[3];
+    readonly StarIcon[] _hudStars = new StarIcon[3];
     Button _removeBtn, _undoBtn, _refreshBtn;
     Text _removeInv, _undoInv, _refreshInv;
     Text _removeUsed, _undoUsed, _refreshUsed;
@@ -158,11 +157,7 @@ public class GameController : MonoBehaviour
         // total stars + help, top right (spaced away from the screen edge)
         int total = 0;
         for (int i = 0; i < levelCount; i++) total += LevelStars(i);
-        var starRt = Ui.Rect("TotalStar", _menuScreen, new Vector2(42, 42), new Vector2(-290, -62), new Vector2(1f, 1f));
-        var starImg = starRt.gameObject.AddComponent<Image>();
-        starImg.sprite = SpriteFactory.Star;
-        starImg.color = StarGold;
-        starImg.raycastTarget = false;
+        StarIcon.Create(_menuScreen, 42, new Vector2(-290, -62), new Vector2(1f, 1f));
         Ui.Label("TotalStars", _menuScreen, total + "/" + (levelCount * 3), 30, Brown,
             new Vector2(-195, -62), new Vector2(130, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
         Ui.MakeButton("Help", _menuScreen, "?", new Vector2(56, 56), new Vector2(-70, -62),
@@ -177,41 +172,39 @@ public class GameController : MonoBehaviour
             float y = 110f - (i / 5) * 205f;
             bool unlocked = idx == 0 || LevelStars(idx - 1) > 0;
 
-            var btn = Ui.MakeButton("Level" + (idx + 1), _menuScreen, "",
-                new Vector2(160, 160), new Vector2(x, y),
+            RectTransform body;
+            var btn = BumpButton("Level" + (idx + 1), _menuScreen, new Vector2(160, 160), new Vector2(x, y),
                 unlocked ? Color.white : new Color(0.85f, 0.80f, 0.74f),
-                Brown, 30, () => StartLevel(idx));
+                unlocked ? Orange : new Color(0.72f, 0.68f, 0.62f),
+                unlocked ? new Color(0.72f, 0.48f, 0.22f, 0.85f) : new Color(0.60f, 0.56f, 0.50f, 0.70f),
+                () => StartLevel(idx), out body);
             btn.interactable = unlocked;
 
-            Ui.Label("Num", btn.transform, (idx + 1).ToString(), 52,
+            Ui.Label("Num", body, (idx + 1).ToString(), 52,
                 unlocked ? DeepOrange : new Color(0.6f, 0.55f, 0.5f),
                 new Vector2(0, 18), new Vector2(160, 60));
 
             int earned = LevelStars(idx);
             for (int s = 0; s < 3; s++)
-            {
-                var srt = Ui.Rect("S" + s, btn.transform, new Vector2(34, 34), new Vector2((s - 1) * 38f, -44));
-                var simg = srt.gameObject.AddComponent<Image>();
-                simg.sprite = SpriteFactory.Star;
-                simg.color = s < earned ? StarGold : StarDim;
-                simg.raycastTarget = false;
-            }
+                StarIcon.Create(body, 32, new Vector2((s - 1) * 40f, -44), null, s < earned);
 
             // claimed marker (token already collected for this level)
             var w3c = Web3Bridge.Instance;
             if (w3c != null && w3c.Connected && w3c.IsLevelClaimed(idx + 1))
             {
-                Ui.Label("Claimed", btn.transform, "RST claimed", 16, WalletTeal,
+                Ui.Label("Claimed", body, "RST claimed", 16, WalletTeal,
                     new Vector2(0, -68), new Vector2(160, 24), style: FontStyle.Normal);
             }
         }
 
         // endless mode (raised clear of the power-ups strip below)
         float endlessY = 110f - (rows - 1) * 205f - 212f;
-        var endless = Ui.MakeButton("Endless", _menuScreen, "", new Vector2(600, 112), new Vector2(0, endlessY),
-            ButtonRose, Color.white, 30, StartEndless);
-        Ui.Label("EndlessLabel", endless.transform, "Endless Mode", 34, Color.white, new Vector2(0, 17), new Vector2(560, 44));
-        Ui.Label("EndlessBest", endless.transform,
+        RectTransform endlessBody;
+        BumpButton("Endless", _menuScreen, new Vector2(600, 112), new Vector2(0, endlessY),
+            ButtonRose, new Color(0.78f, 0.38f, 0.34f), new Color(0.55f, 0.26f, 0.23f, 0.85f),
+            StartEndless, out endlessBody);
+        Ui.Label("EndlessLabel", endlessBody, "Endless Mode", 34, Color.white, new Vector2(0, 17), new Vector2(560, 44));
+        Ui.Label("EndlessBest", endlessBody,
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
             20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -23), new Vector2(560, 30), style: FontStyle.Normal);
 
@@ -231,6 +224,38 @@ public class GameController : MonoBehaviour
 
         // random meme peekaboo from the screen edges (configure in GameSettings)
         _menuScreen.gameObject.AddComponent<Peekaboo>();
+    }
+
+    /// <summary>
+    /// A button that "bumps out": a dark drop shadow behind a bordered body,
+    /// like a raised game button. Content goes into <paramref name="body"/>.
+    /// </summary>
+    Button BumpButton(string name, Transform parent, Vector2 size, Vector2 pos,
+        Color fill, Color border, Color shadow, System.Action onClick, out RectTransform body,
+        Vector2? anchor = null)
+    {
+        var root = Ui.Rect(name, parent, size, pos, anchor);
+
+        var shadowRt = Ui.Rect("Shadow", root, size, new Vector2(0f, -7f));
+        var shadowImg = Ui.Panel(shadowRt, shadow);
+        shadowImg.raycastTarget = false;
+
+        body = Ui.Rect("Body", root, size, Vector2.zero);
+        var borderImg = Ui.Panel(body, border);
+        var fillRt = Ui.Stretch("Fill", body);
+        fillRt.offsetMin = new Vector2(5f, 5f);
+        fillRt.offsetMax = new Vector2(-5f, -5f);
+        var fillImg = Ui.Panel(fillRt, fill);
+        fillImg.raycastTarget = false;
+
+        var btn = root.gameObject.AddComponent<Button>();
+        btn.targetGraphic = borderImg;
+        if (onClick != null)
+        {
+            var action = onClick;
+            btn.onClick.AddListener(() => action());
+        }
+        return btn;
     }
 
     void BuildWalletCorner()
@@ -292,13 +317,7 @@ public class GameController : MonoBehaviour
         Ui.Panel(timerBg, CreamDark);
         _timerText = Ui.Label("Timer", timerBg, "00:00", 32, Brown, Vector2.zero, new Vector2(190, 54));
         for (int s = 0; s < 3; s++)
-        {
-            var srt = Ui.Rect("HudStar" + s, _gameScreen, new Vector2(42, 42), new Vector2((s - 1) * 48f, -95), new Vector2(0.5f, 1f));
-            _hudStars[s] = srt.gameObject.AddComponent<Image>();
-            _hudStars[s].sprite = SpriteFactory.Star;
-            _hudStars[s].color = StarGold;
-            _hudStars[s].raycastTarget = false;
-        }
+            _hudStars[s] = StarIcon.Create(_gameScreen, 40, new Vector2((s - 1) * 50f, -96), new Vector2(0.5f, 1f));
 
         // score (top right, kept away from the edge)
         _scoreText = Ui.Label("Score", _gameScreen, "Score  0", 32, Brown,
@@ -819,11 +838,7 @@ public class GameController : MonoBehaviour
             _stageText.text = "Level " + (_levelIndex + 1);
             _timerText.text = FormatTime(_elapsed);
             int would = _elapsed <= _currentDef.threeStarTime ? 3 : _elapsed <= _currentDef.twoStarTime ? 2 : 1;
-            for (int s = 0; s < 3; s++)
-            {
-                _hudStars[s].gameObject.SetActive(true);
-                _hudStars[s].color = s < would ? StarGold : StarDim;
-            }
+            for (int s = 0; s < 3; s++) _hudStars[s].SetLit(s < would);
         }
         else
         {
@@ -832,11 +847,7 @@ public class GameController : MonoBehaviour
             float remain = Mathf.Max(0f, GameConfig.S.endlessDuration - _elapsed);
             _timerText.text = FormatTime(remain);
             int stars = EndlessStarsRemaining();
-            for (int s = 0; s < 3; s++)
-            {
-                _hudStars[s].gameObject.SetActive(true);
-                _hudStars[s].color = s < stars ? StarGold : StarDim;
-            }
+            for (int s = 0; s < 3; s++) _hudStars[s].SetLit(s < stars);
         }
 
         _removeInv.text = _invRemove.ToString();
@@ -935,7 +946,7 @@ public class GameController : MonoBehaviour
     // popups
     // =====================================================================
 
-    RectTransform BuildPopup(string title, float height, float width = 700f)
+    RectTransform BuildPopup(string title, float height, float width = 700f, Color? titleColor = null)
     {
         ClosePopup();
         _popupLayer = Ui.Stretch("PopupLayer", _canvasRoot);
@@ -944,8 +955,16 @@ public class GameController : MonoBehaviour
 
         var panel = Ui.Rect("Panel", _popupLayer, new Vector2(width, height), Vector2.zero);
         Ui.Panel(panel, Cream);
-        Ui.Label("Title", panel, title, 46, DeepOrange,
-            new Vector2(0, height * 0.5f - 60f), new Vector2(width - 80f, 60));
+
+        var titleText = Ui.Label("Title", panel, title, 54, titleColor ?? DeepOrange,
+            new Vector2(0, height * 0.5f - 62f), new Vector2(width - 80f, 66));
+        var titleOutline = titleText.gameObject.AddComponent<Outline>();
+        titleOutline.effectColor = Color.white;
+        titleOutline.effectDistance = new Vector2(3f, -3f);
+        var titleShadow = titleText.gameObject.AddComponent<Outline>();
+        titleShadow.effectColor = new Color(0.40f, 0.22f, 0.08f, 0.35f);
+        titleShadow.effectDistance = new Vector2(-4f, -6f);
+        Tween.ScaleIn((RectTransform)titleText.transform, 0.05f, 0.4f);
         return panel;
     }
 
@@ -972,16 +991,12 @@ public class GameController : MonoBehaviour
 
     void ShowWinPopup(int stars, int timeBonus)
     {
-        var panel = BuildPopup("Level Clear!", 640);
+        var panel = BuildPopup("Level Clear!", 640, 700f, new Color(0.98f, 0.60f, 0.10f));
 
         for (int s = 0; s < 3; s++)
         {
-            var srt = Ui.Rect("Star" + s, panel, new Vector2(86, 86), new Vector2((s - 1) * 100f, 160f));
-            var img = srt.gameObject.AddComponent<Image>();
-            img.sprite = SpriteFactory.Star;
-            img.color = s < stars ? StarGold : StarDim;
-            img.raycastTarget = false;
-            if (s < stars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
+            var icon = StarIcon.Create(panel, 84, new Vector2((s - 1) * 104f, 160f), null, s < stars);
+            if (s < stars) Tween.ScaleIn(icon.Root, 0.25f + s * 0.22f, 0.5f);
         }
 
         Ui.Label("Time", panel, "Time  " + FormatTime(_elapsed), 28, Brown,
@@ -1005,12 +1020,12 @@ public class GameController : MonoBehaviour
         }
 
         // celebration!
-        Confetti.Burst(_popupLayer, 70);
+        Confetti.Burst(_popupLayer, 110);
     }
 
     void ShowLosePopup()
     {
-        var panel = BuildPopup("Defeat...", 400);
+        var panel = BuildPopup("Defeat...", 400, 700f, new Color(0.56f, 0.47f, 0.66f));
         Ui.Label("Msg", panel, "The clearing zone overflowed!\nRaggler keeps the gifts... for now.", 28, Brown,
             new Vector2(0, 30), new Vector2(600, 90), style: FontStyle.Normal);
 
@@ -1023,7 +1038,8 @@ public class GameController : MonoBehaviour
 
     void ShowEndlessOverPopup(bool timeUp, int best)
     {
-        var panel = BuildPopup(timeUp ? "Time's Up!" : "Endless Over", 620);
+        var panel = BuildPopup(timeUp ? "Time's Up!" : "Endless Over", 620, 700f,
+            timeUp ? new Color(0.92f, 0.42f, 0.52f) : new Color(0.56f, 0.47f, 0.66f));
 
         Ui.Label("Rounds", panel, "Rounds cleared: " + (_endlessRound - 1), 28, Brown,
             new Vector2(0, 170), new Vector2(600, 36), style: FontStyle.Normal);
@@ -1037,12 +1053,8 @@ public class GameController : MonoBehaviour
         int shownStars = Mathf.Min(3, _endlessFinalStars);
         for (int s = 0; s < 3; s++)
         {
-            var srt = Ui.Rect("KStar" + s, panel, new Vector2(56, 56), new Vector2((s - 1) * 66f, -15f));
-            var img = srt.gameObject.AddComponent<Image>();
-            img.sprite = SpriteFactory.Star;
-            img.color = s < shownStars ? StarGold : StarDim;
-            img.raycastTarget = false;
-            if (s < shownStars) Tween.ScaleIn(srt, 0.25f + s * 0.22f, 0.5f);
+            var icon = StarIcon.Create(panel, 54, new Vector2((s - 1) * 70f, -15f), null, s < shownStars);
+            if (s < shownStars) Tween.ScaleIn(icon.Root, 0.25f + s * 0.22f, 0.5f);
         }
         if (_endlessFinalStars > 3)
         {
@@ -1062,7 +1074,7 @@ public class GameController : MonoBehaviour
             ButtonRose, Color.white, 26, StartEndless);
 
         if (_endlessFinalStars >= 2)
-            Confetti.Burst(_popupLayer, 45);
+            Confetti.Burst(_popupLayer, 70);
     }
 
     void ShowHelpPopup()

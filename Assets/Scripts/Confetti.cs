@@ -3,8 +3,9 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Lightweight UI confetti: colored strips that fall, sway, spin and fade.
-/// Purely cosmetic, cleans itself up.
+/// Explosive UI confetti: pieces blast outward from the center with real
+/// velocity, arc under gravity, spin and fade. Purely cosmetic, cleans
+/// itself up.
 /// </summary>
 public static class Confetti
 {
@@ -16,6 +17,7 @@ public static class Confetti
         new Color(0.35f, 0.60f, 0.95f),
         new Color(0.80f, 0.50f, 0.95f),
         new Color(1.00f, 0.62f, 0.25f),
+        new Color(0.30f, 0.85f, 0.80f),
     };
 
     public static void Burst(RectTransform parent, int count)
@@ -29,35 +31,44 @@ public static class Confetti
     {
         if (parent == null) yield break;
 
-        // small random delay so the burst feels organic
-        yield return new WaitForSeconds(Random.Range(0f, 0.35f));
+        // slight stagger so the blast feels like a real explosion, not a frame
+        yield return new WaitForSeconds(Random.Range(0f, 0.18f));
         if (parent == null) yield break;
 
-        var rt = Ui.Rect("Confetti", parent,
-            new Vector2(Random.Range(9f, 16f), Random.Range(14f, 24f)), Vector2.zero);
+        // mix of strips and squares
+        Vector2 pieceSize = Random.Range(0, 2) == 0
+            ? new Vector2(Random.Range(8f, 14f), Random.Range(18f, 30f))
+            : new Vector2(Random.Range(10f, 17f), Random.Range(10f, 17f));
+
+        var rt = Ui.Rect("Confetti", parent, pieceSize,
+            new Vector2(Random.Range(-70f, 70f), Random.Range(-30f, 90f)));
         var img = rt.gameObject.AddComponent<Image>();
         img.color = Palette[Random.Range(0, Palette.Length)];
         img.raycastTarget = false;
 
-        float x0 = Random.Range(-360f, 360f);
-        float y0 = Random.Range(330f, 430f);
-        float fall = Random.Range(190f, 300f);
-        float sway = Random.Range(25f, 80f);
-        float phase = Random.Range(0f, 6.28f);
-        float spin = Random.Range(-420f, 420f);
-        float life = Random.Range(2.2f, 3.2f);
+        // blast outward: strong sideways spread, upward bias, gravity pulls back
+        float vx = Random.Range(-850f, 850f);
+        float vy = Random.Range(150f, 950f);
+        const float gravity = 1500f;
+        float spin = Random.Range(-720f, 720f);
+        float life = Random.Range(1.4f, 2.4f);
 
         float t = 0f;
+        Vector2 pos = rt.anchoredPosition;
         while (t < life)
         {
             if (rt == null) yield break;
-            t += Time.deltaTime;
-            rt.anchoredPosition = new Vector2(x0 + Mathf.Sin(phase + t * 3f) * sway, y0 - fall * t);
+            float dt = Time.deltaTime;
+            t += dt;
+            vy -= gravity * dt;
+            vx *= 1f - 0.6f * dt; // air drag on the sideways burst
+            pos = new Vector2(pos.x + vx * dt, pos.y + vy * dt);
+            rt.anchoredPosition = pos;
             rt.localEulerAngles = new Vector3(0f, 0f, spin * t);
-            if (t > life - 0.5f)
+            if (t > life - 0.4f)
             {
                 var c = img.color;
-                c.a = Mathf.Clamp01((life - t) * 2f);
+                c.a = Mathf.Clamp01((life - t) / 0.4f);
                 img.color = c;
             }
             yield return null;

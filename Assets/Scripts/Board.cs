@@ -79,6 +79,11 @@ public class Board
                 card.layer = l;
                 card.col = pos.x;
                 card.row = pos.y;
+                // organic spacing: up to +-4px inside the cell; the card frame
+                // is 8px smaller than the cell, so neighbors can touch but
+                // never overlap
+                card.jitterX = rng.Next(-4, 5);
+                card.jitterY = rng.Next(-4, 5);
                 card.Rect.anchoredPosition = card.BoardPosition;
                 card.onClicked = onClick;
                 cards.Add(card);
