@@ -64,9 +64,19 @@ public class GameSettings : ScriptableObject
     public CardKindDef[] cardKinds;
 
     [Header("Background")]
-    [Tooltip("Optional full-screen background image. Leave empty for the flat color below.")]
+    [Tooltip("Fallback background image used when the menu/game-specific ones below are empty. Leave all empty for the flat color.")]
     public Sprite backgroundSprite;
+    [Tooltip("Background image for the MAIN MENU (falls back to Background Sprite).")]
+    public Sprite menuBackgroundSprite;
+    [Tooltip("Background image DURING GAMEPLAY (falls back to Background Sprite).")]
+    public Sprite gameBackgroundSprite;
     public Color backgroundColor = new Color(1.00f, 0.95f, 0.86f);
+    [Tooltip("Show the slowly spinning sunburst rays on the main menu (never shown during gameplay).")]
+    public bool menuSunburst = true;
+
+    [Header("Menu UI")]
+    [Tooltip("Show the power-ups inventory chip on the main menu.")]
+    public bool showMenuPowerUps = true;
 
     [Header("Card Back & Power-up Icons")]
     [Tooltip("Picture shown on face-down cards in the side piles. Leave empty for the plain generated back.")]

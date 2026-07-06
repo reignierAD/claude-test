@@ -36,8 +36,9 @@ in the Inspector — no code required:
   Sprites* and they'll randomly peek in from a screen edge on the main
   menu, hold a moment, and duck away — interval, hold time and size are
   all tunable. Leave the list empty to disable.
-- **Background**: assign a full-screen *Background Sprite*, or just pick a
-  *Background Color*.
+- **Background**: separate images for the **main menu** and **gameplay**
+  (with a shared fallback sprite and flat color), plus toggles for the
+  slowly spinning **menu sunburst** and the menu **power-ups chip**.
 - **Levels**: one list entry per level (add more entries = more levels).
   Each level sets its own **card varieties** (e.g. 3 kinds in level 1,
   5 in level 2, ...), tile count, layer depth, the two star-time

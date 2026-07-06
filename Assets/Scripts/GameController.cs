@@ -76,6 +76,11 @@ public class GameController : MonoBehaviour
     Text _removeUsed, _undoUsed, _refreshUsed;
     float _toastUntil;
 
+    // ---- background refs ----
+    Image _bgImage;
+    GameObject _sunburstGo;
+    GameObject _decoRoot;
+
     // ---- claim UI (inside result popups) ----
     Button _claimButton;
     Text _claimStatusText;
@@ -109,31 +114,52 @@ public class GameController : MonoBehaviour
     void BuildBackground()
     {
         var bg = Ui.Stretch("Background", _canvasRoot);
-        var img = bg.gameObject.AddComponent<Image>();
-        var s = GameConfig.S;
+        _bgImage = bg.gameObject.AddComponent<Image>();
+        _bgImage.color = GameConfig.S.backgroundColor;
 
-        if (s.backgroundSprite != null)
-        {
-            img.sprite = s.backgroundSprite;
-            img.color = Color.white;
-            return;
-        }
-
-        img.color = s.backgroundColor;
-
-        // slowly spinning cartoon sunburst behind everything
+        // slowly spinning cartoon sunburst (menu only, toggled per screen)
         var burstRt = Ui.Rect("Sunburst", bg, new Vector2(2400, 2400), Vector2.zero);
         var burst = burstRt.gameObject.AddComponent<Image>();
         burst.sprite = SpriteFactory.Sunburst;
         burst.color = new Color(1f, 0.82f, 0.52f, 0.20f);
         burst.raycastTarget = false;
         burstRt.gameObject.AddComponent<SpinBackground>();
+        _sunburstGo = burstRt.gameObject;
 
-        // soft decorative blobs, roughly matching the event screen's warm look
-        Deco(bg, new Vector2(-620, 380), 500, new Color(1f, 0.80f, 0.55f, 0.35f));
-        Deco(bg, new Vector2(660, -400), 640, new Color(1f, 0.72f, 0.45f, 0.30f));
-        Deco(bg, new Vector2(560, 400), 360, new Color(1f, 0.86f, 0.60f, 0.30f));
-        Deco(bg, new Vector2(-640, -420), 420, new Color(1f, 0.86f, 0.60f, 0.25f));
+        // soft decorative blobs, hidden when a background picture is used
+        var decoRt = Ui.Stretch("Decos", bg);
+        _decoRoot = decoRt.gameObject;
+        Deco(decoRt, new Vector2(-620, 380), 500, new Color(1f, 0.80f, 0.55f, 0.35f));
+        Deco(decoRt, new Vector2(660, -400), 640, new Color(1f, 0.72f, 0.45f, 0.30f));
+        Deco(decoRt, new Vector2(560, 400), 360, new Color(1f, 0.86f, 0.60f, 0.30f));
+        Deco(decoRt, new Vector2(-640, -420), 420, new Color(1f, 0.86f, 0.60f, 0.25f));
+    }
+
+    /// <summary>
+    /// Swaps the backdrop for the current screen: menu and gameplay can each
+    /// have their own picture (GameSettings > Background), and the spinning
+    /// sunburst only ever shows on the menu — over a picture or the flat color.
+    /// </summary>
+    void ApplyBackground(bool menu)
+    {
+        var s = GameConfig.S;
+        var sprite = menu
+            ? (s.menuBackgroundSprite != null ? s.menuBackgroundSprite : s.backgroundSprite)
+            : (s.gameBackgroundSprite != null ? s.gameBackgroundSprite : s.backgroundSprite);
+
+        if (sprite != null)
+        {
+            _bgImage.sprite = sprite;
+            _bgImage.color = Color.white;
+        }
+        else
+        {
+            _bgImage.sprite = null;
+            _bgImage.color = s.backgroundColor;
+        }
+
+        _sunburstGo.SetActive(menu && s.menuSunburst);
+        _decoRoot.SetActive(sprite == null);
     }
 
     static void Deco(Transform parent, Vector2 pos, float size, Color color)
@@ -152,6 +178,7 @@ public class GameController : MonoBehaviour
     void ShowMenu()
     {
         _state = State.Menu;
+        ApplyBackground(true);
         _gameScreen.gameObject.SetActive(false);
         ClosePopup();
         if (_menuScreen != null) Destroy(_menuScreen.gameObject);
@@ -218,12 +245,15 @@ public class GameController : MonoBehaviour
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
             20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -23), new Vector2(560, 30), style: FontStyle.Normal);
 
-        // power-ups remaining (top-left chip, mirroring the star counter)
-        var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(470, 54), new Vector2(270, -62), new Vector2(0f, 1f));
-        Ui.BorderPanel(itemsPanel, new Color(1f, 1f, 1f, 0.88f), new Color(0.90f, 0.68f, 0.38f), 4f);
-        Ui.Label("ItemsLeftText", itemsPanel,
-            "Power-ups    Remove " + _invRemove + "   ·   Undo " + _invUndo + "   ·   Refresh " + _invRefresh,
-            20, SoftBrown, Vector2.zero, new Vector2(440, 36), style: FontStyle.Normal);
+        // power-ups remaining (top-left chip; toggle in GameSettings > Menu UI)
+        if (GameConfig.S.showMenuPowerUps)
+        {
+            var itemsPanel = Ui.Rect("ItemsLeft", _menuScreen, new Vector2(470, 54), new Vector2(270, -62), new Vector2(0f, 1f));
+            Ui.BorderPanel(itemsPanel, new Color(1f, 1f, 1f, 0.88f), new Color(0.90f, 0.68f, 0.38f), 4f);
+            Ui.Label("ItemsLeftText", itemsPanel,
+                "Power-ups    Remove " + _invRemove + "   ·   Undo " + _invUndo + "   ·   Refresh " + _invRefresh,
+                20, SoftBrown, Vector2.zero, new Vector2(440, 36), style: FontStyle.Normal);
+        }
 
         // wallet corner (bottom right)
         BuildWalletCorner();
@@ -378,12 +408,12 @@ public class GameController : MonoBehaviour
         if (icon != null)
         {
             // custom picture (GameSettings > Power-up Icons) with the name below
-            var iconRt = Ui.Rect("Icon", btn.transform, new Vector2(46, 46), new Vector2(0, 24));
+            var iconRt = Ui.Rect("Icon", btn.transform, new Vector2(70, 70), new Vector2(0, 20));
             var iconImg = iconRt.gameObject.AddComponent<Image>();
             iconImg.sprite = icon;
             iconImg.preserveAspect = true;
             iconImg.raycastTarget = false;
-            Ui.Label("Name", btn.transform, label, 18, Brown, new Vector2(0, -12), new Vector2(130, 26));
+            Ui.Label("Name", btn.transform, label, 16, Brown, new Vector2(0, -24), new Vector2(130, 24));
         }
         else
         {
@@ -398,8 +428,8 @@ public class GameController : MonoBehaviour
         bimg.raycastTarget = false;
         invText = Ui.Label("Inv", badge, "0", 19, Color.white, Vector2.zero, new Vector2(40, 40));
 
-        usedText = Ui.Label("Used", btn.transform, "0/" + GameConfig.ItemUseCapPerStage, 20,
-            SoftBrown, new Vector2(0, -36), new Vector2(130, 28), style: FontStyle.Normal);
+        usedText = Ui.Label("Used", btn.transform, "0/" + GameConfig.ItemUseCapPerStage, 18,
+            SoftBrown, new Vector2(0, -44), new Vector2(130, 26), style: FontStyle.Normal);
         return btn;
     }
 
@@ -430,6 +460,7 @@ public class GameController : MonoBehaviour
     void BeginSession(GameSettings.LevelDef def)
     {
         ClosePopup();
+        ApplyBackground(false);
         if (_menuScreen != null) Destroy(_menuScreen.gameObject);
         _gameScreen.gameObject.SetActive(true);
 
@@ -525,8 +556,8 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Soft warm fade that covers the screen, swaps to the next screen at
-    /// full cover, then fades back out. Blocks input while running.
+    /// Black panel swipes in from the right, covers the screen for the swap,
+    /// then keeps swiping off the left edge. Blocks input while running.
     /// </summary>
     void TransitionTo(System.Action swap)
     {
@@ -538,33 +569,39 @@ public class GameController : MonoBehaviour
     IEnumerator TransitionRoutine(System.Action swap)
     {
         var overlay = Ui.Stretch("Transition", _canvasRoot);
-        var img = overlay.gameObject.AddComponent<Image>();
-        var tint = new Color(1f, 0.92f, 0.80f);
-        img.color = new Color(tint.r, tint.g, tint.b, 0f);
-        img.raycastTarget = true; // swallow clicks during the swap
+        var blocker = overlay.gameObject.AddComponent<Image>();
+        blocker.color = new Color(0f, 0f, 0f, 0f);
+        blocker.raycastTarget = true; // swallow clicks during the swap
 
-        float t = 0f;
-        const float fadeIn = 0.22f;
-        while (t < fadeIn)
-        {
-            t += Time.deltaTime;
-            img.color = new Color(tint.r, tint.g, tint.b, Mathf.Clamp01(t / fadeIn));
-            yield return null;
-        }
+        const float wipeW = 2400f; // wide enough for ultrawide screens
+        var wipeRt = Ui.Rect("Wipe", overlay, new Vector2(wipeW, 1400f), new Vector2(wipeW, 0f));
+        var wipe = wipeRt.gameObject.AddComponent<Image>();
+        wipe.color = new Color(0.09f, 0.08f, 0.07f);
+
+        yield return Slide(wipeRt, new Vector2(wipeW, 0f), Vector2.zero, 0.26f);
 
         swap();
         overlay.SetAsLastSibling(); // stay above whatever the swap built
 
-        t = 0f;
-        const float fadeOut = 0.30f;
-        while (t < fadeOut)
-        {
-            t += Time.deltaTime;
-            img.color = new Color(tint.r, tint.g, tint.b, 1f - Mathf.Clamp01(t / fadeOut));
-            yield return null;
-        }
+        yield return Slide(wipeRt, Vector2.zero, new Vector2(-wipeW, 0f), 0.30f);
+
         Destroy(overlay.gameObject);
         _transitioning = false;
+    }
+
+    IEnumerator Slide(RectTransform rt, Vector2 from, Vector2 to, float duration)
+    {
+        float t = 0f;
+        while (t < duration)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / duration);
+            float e = p < 0.5f ? 2f * p * p : 1f - Mathf.Pow(-2f * p + 2f, 2f) / 2f; // easeInOutQuad
+            rt.anchoredPosition = Vector2.LerpUnclamped(from, to, e);
+            yield return null;
+        }
+        if (rt != null) rt.anchoredPosition = to;
     }
 
     // =====================================================================
