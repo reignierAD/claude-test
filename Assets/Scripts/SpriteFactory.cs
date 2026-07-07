@@ -9,6 +9,7 @@ public static class SpriteFactory
     static Sprite _rounded;
     static Sprite _roundedMid;
     static Sprite _roundedInner;
+    static Sprite _roundedFrame;
     static Sprite _circle;
     static Sprite _star;
     static Sprite _arrow;
@@ -49,6 +50,47 @@ public static class SpriteFactory
             if (_roundedInner == null) _roundedInner = BuildRoundedRect(64, 10f);
             return _roundedInner;
         }
+    }
+
+    /// <summary>
+    /// Rounded-rect outline only — a stroke of constant thickness with a fully
+    /// transparent centre. 9-sliced, so a zone drawn with it shows nothing but
+    /// its cartoon border and lets the background show straight through.
+    /// </summary>
+    public static Sprite RoundedRectFrame
+    {
+        get
+        {
+            if (_roundedFrame == null) _roundedFrame = BuildRoundedRectFrame(64, 16f, 6f);
+            return _roundedFrame;
+        }
+    }
+
+    static Sprite BuildRoundedRectFrame(int size, float radius, float thickness)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        float half = size * 0.5f;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float px = x + 0.5f - half;
+                float py = y + 0.5f - half;
+                float dx = Mathf.Max(Mathf.Abs(px) - (half - radius), 0f);
+                float dy = Mathf.Max(Mathf.Abs(py) - (half - radius), 0f);
+                float dist = Mathf.Sqrt(dx * dx + dy * dy) - radius; // <0 inside, 0 at edge
+                float outer = Mathf.Clamp01(0.5f - dist);              // fades past the outer edge
+                float inner = Mathf.Clamp01(dist + thickness + 0.5f);  // fades past the stroke width
+                pixels[y * size + x] = new Color(1f, 1f, 1f, Mathf.Min(outer, inner));
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        float border = radius + thickness + 2f;
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f),
+            100f, 0, SpriteMeshType.FullRect, new Vector4(border, border, border, border));
     }
 
     /// <summary>White radial sunburst (alternating transparent rays).</summary>

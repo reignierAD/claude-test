@@ -364,26 +364,26 @@ public class GameController : MonoBehaviour
         arrowImg.color = Color.white;
         arrowImg.raycastTarget = false;
 
+        // level title, pushed right of the back button so they don't crowd
         _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 36, DeepOrange,
-            new Vector2(320, -58), new Vector2(460, 54), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f),
+            new Vector2(400, -54), new Vector2(460, 54), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f),
             font: Ui.TitleFont);
         AddCartoonText(_stageText, 3f);
 
-        // timer + stars (top center) — cartoon badge with a slightly see-through fill
-        var timerBg = Ui.Rect("TimerBg", _gameScreen, new Vector2(200, 60), new Vector2(0, -46), new Vector2(0.5f, 1f));
+        // timer + stars (top center) — cartoon badge, raised, with air below for the stars
+        var timerBg = Ui.Rect("TimerBg", _gameScreen, new Vector2(200, 60), new Vector2(0, -40), new Vector2(0.5f, 1f));
         Ui.BorderPanel(timerBg, new Color(1f, 0.96f, 0.85f, 0.42f), new Color(0.95f, 0.66f, 0.32f, 0.90f), 6f);
         _timerText = Ui.Label("Timer", timerBg, "00:00", 34, new Color(0.50f, 0.28f, 0.10f),
             Vector2.zero, new Vector2(200, 60), font: Ui.TitleFont);
         AddCartoonText(_timerText, 2.5f);
         for (int s = 0; s < 3; s++)
-            _hudStars[s] = StarIcon.Create(_gameScreen, 40, new Vector2((s - 1) * 50f, -100), new Vector2(0.5f, 1f));
+            _hudStars[s] = StarIcon.Create(_gameScreen, 40, new Vector2((s - 1) * 50f, -120), new Vector2(0.5f, 1f));
 
-        // score (top right) — cartoon coin badge that punches when you score
-        _scoreBadge = Ui.Rect("ScoreBadge", _gameScreen, new Vector2(300, 64), new Vector2(-170, -58), new Vector2(1f, 1f));
+        // score (top right) — cartoon badge that punches when you score
+        _scoreBadge = Ui.Rect("ScoreBadge", _gameScreen, new Vector2(280, 64), new Vector2(-160, -44), new Vector2(1f, 1f));
         Ui.BorderPanel(_scoreBadge, new Color(1f, 0.90f, 0.58f, 0.92f), new Color(0.95f, 0.66f, 0.32f, 0.95f), 6f);
-        StarIcon.Create(_scoreBadge, 42, new Vector2(-116, 0));
         _scoreText = Ui.Label("Score", _scoreBadge, "Score  0", 28, new Color(0.50f, 0.28f, 0.10f),
-            new Vector2(22, 0), new Vector2(232, 60), TextAnchor.MiddleCenter, font: Ui.TitleFont);
+            Vector2.zero, new Vector2(260, 60), TextAnchor.MiddleCenter, font: Ui.TitleFont);
         AddCartoonText(_scoreText, 2.5f);
 
         // item buttons (right side) — no backdrop, the buttons float on the board
@@ -404,14 +404,14 @@ public class GameController : MonoBehaviour
         _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 245), new Vector2(0.5f, 0f));
 
         // hold area (bottom left) — Remove item drops cards here.
-        // Transparent fill: just a cartoon outline marks the zone.
+        // Hollow: only a cartoon outline, the interior is fully transparent.
         _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 138), new Vector2(-480, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0f), new Color(0.42f, 0.36f, 0.31f, 0.55f));
+        Ui.OutlineZone(_holdRoot, new Color(0.42f, 0.36f, 0.31f, 0.85f));
 
         // clearing zone (bottom center, dropped lower for breathing room).
-        // Transparent fill: just a cartoon outline marks the zone.
+        // Hollow: only a cartoon outline, the interior is fully transparent.
         _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 138), new Vector2(160, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0f), new Color(0.85f, 0.52f, 0.20f, 0.65f));
+        Ui.OutlineZone(_trayRoot, new Color(0.85f, 0.52f, 0.20f, 0.9f));
 
         // toast / combo text
         _toastText = Ui.Label("Toast", _gameScreen, "", 38, DeepOrange,

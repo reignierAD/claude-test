@@ -144,6 +144,21 @@ public static class Ui
         return img;
     }
 
+    /// <summary>
+    /// A genuinely transparent zone: only a cartoon outline is drawn, the
+    /// interior lets the background show straight through (unlike BorderPanel,
+    /// whose layers fill the whole area).
+    /// </summary>
+    public static Image OutlineZone(RectTransform rt, Color outline)
+    {
+        var img = rt.gameObject.AddComponent<Image>();
+        img.sprite = SpriteFactory.RoundedRectFrame;
+        img.type = Image.Type.Sliced;
+        img.color = outline;
+        img.raycastTarget = false;
+        return img;
+    }
+
     /// <summary>Dark, cartoonish "ink" tone derived from a border color.</summary>
     public static Color CartoonInk(Color c)
     {
