@@ -47,7 +47,7 @@ public static class GameConfig
     public const int EndlessRoundBonus = 100;
 
     // Starting item inventory on first launch (a nod to the original screenshots)
-    public const int StartRemove = 37;
-    public const int StartUndo = 5;
-    public const int StartRefresh = 23;
+    public const int StartRemove = 3;
+    public const int StartUndo = 3;
+    public const int StartRefresh = 3;
 }

@@ -41,7 +41,7 @@ public static class SpriteFactory
     {
         get
         {
-            if (_sunburst == null) _sunburst = BuildSunburst(256, 24);
+            if (_sunburst == null) _sunburst = BuildSunburst(512, 24);
             return _sunburst;
         }
     }

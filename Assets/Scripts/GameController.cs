@@ -121,7 +121,7 @@ public class GameController : MonoBehaviour
         var burstRt = Ui.Rect("Sunburst", bg, new Vector2(2400, 2400), Vector2.zero);
         var burst = burstRt.gameObject.AddComponent<Image>();
         burst.sprite = SpriteFactory.Sunburst;
-        burst.color = new Color(1f, 0.82f, 0.52f, 0.20f);
+        burst.color = new Color(1f, 1f, 1f, 0.20f);
         burst.raycastTarget = false;
         burstRt.gameObject.AddComponent<SpinBackground>();
         _sunburstGo = burstRt.gameObject;
@@ -373,7 +373,7 @@ public class GameController : MonoBehaviour
         // board play area: subtle backdrop marking where cards can appear,
         // then the board root itself
         var boardZone = Ui.Rect("BoardZone", _gameScreen, new Vector2(1210, 500), new Vector2(-40, 90));
-        var zoneImg = Ui.Panel(boardZone, new Color(1f, 1f, 1f, 0.20f));
+        var zoneImg = Ui.Panel(boardZone, new Color(1f, 1f, 1f, 0.0f));
         zoneImg.raycastTarget = false;
         _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 90));
 
@@ -578,12 +578,12 @@ public class GameController : MonoBehaviour
         var wipe = wipeRt.gameObject.AddComponent<Image>();
         wipe.color = new Color(0.09f, 0.08f, 0.07f);
 
-        yield return Slide(wipeRt, new Vector2(wipeW, 0f), Vector2.zero, 0.26f);
+        yield return Slide(wipeRt, new Vector2(wipeW, 0f), Vector2.zero, 0.36f);
 
         swap();
         overlay.SetAsLastSibling(); // stay above whatever the swap built
 
-        yield return Slide(wipeRt, Vector2.zero, new Vector2(-wipeW, 0f), 0.30f);
+        yield return Slide(wipeRt, Vector2.zero, new Vector2(-wipeW, 0f), 0.4f);
 
         Destroy(overlay.gameObject);
         _transitioning = false;

@@ -3,7 +3,7 @@ using UnityEngine;
 /// <summary>Slow constant rotation for the cartoon sunburst background.</summary>
 public class SpinBackground : MonoBehaviour
 {
-    public float degreesPerSecond = 4f;
+    public float degreesPerSecond = -10f;
 
     void Update()
     {

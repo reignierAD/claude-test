@@ -13,78 +13,122 @@ MonoBehaviour:
   m_Name: GameSettings
   m_EditorClassIdentifier: Assembly-CSharp::GameSettings
   cardKinds:
-  - cardName: Poring
-    sprite: {fileID: 0}
+  - cardName: 1
+    sprite: {fileID: -885996747, guid: 62591cafca2d341e0ad5a6f184e9c84f, type: 3}
     color: {r: 1, g: 0.55, b: 0.75, a: 1}
-  - cardName: Drops
-    sprite: {fileID: 0}
+  - cardName: 2
+    sprite: {fileID: 2110350891, guid: d70d64fc972b945398ac90a0c8e06806, type: 3}
     color: {r: 1, g: 0.62, b: 0.25, a: 1}
-  - cardName: Poporing
-    sprite: {fileID: 0}
+  - cardName: 3
+    sprite: {fileID: 978364736, guid: 422cf916ac06c46d4bd67790c564631c, type: 3}
     color: {r: 0.45, g: 0.8, b: 0.35, a: 1}
-  - cardName: Lunatic
-    sprite: {fileID: 0}
+  - cardName: 4
+    sprite: {fileID: 267937628, guid: a68c139b8dd664817bb3acc6b475533d, type: 3}
     color: {r: 0.88, g: 0.88, b: 0.94, a: 1}
-  - cardName: Spore
-    sprite: {fileID: 0}
+  - cardName: 5
+    sprite: {fileID: -1979769829, guid: e1d9f0e5d561e43b0964925fb300eedb, type: 3}
     color: {r: 0.9, g: 0.3, b: 0.28, a: 1}
-  - cardName: Marin
-    sprite: {fileID: 0}
+  - cardName: 6
+    sprite: {fileID: -1249457213, guid: 859009ae06ba7407fb22ca6893092524, type: 3}
     color: {r: 0.35, g: 0.6, b: 0.95, a: 1}
-  - cardName: Metaling
-    sprite: {fileID: 0}
+  - cardName: 7
+    sprite: {fileID: -1820569719, guid: 3dbea5aeb0f0b4962858cf14c8878922, type: 3}
     color: {r: 0.55, g: 0.58, b: 0.65, a: 1}
-  - cardName: Angeling
-    sprite: {fileID: 0}
+  - cardName: 8
+    sprite: {fileID: 2112388945, guid: fad024107f56648388eaaa0a9a156a14, type: 3}
     color: {r: 1, g: 0.84, b: 0.3, a: 1}
-  backgroundSprite: {fileID: 0}
-  backgroundColor: {r: 1, g: 0.95, b: 0.86, a: 1}
+  - cardName: 9
+    sprite: {fileID: 2042393179, guid: 0b7f60d83d94d4610841bdc46ad6a39a, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 10
+    sprite: {fileID: 1509040764, guid: 48ae85965063a43528125916e72ede9a, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 11
+    sprite: {fileID: 98405890, guid: 31a908cf76f6e408da4ce877dc4c5f6f, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 12
+    sprite: {fileID: -1513884206, guid: 28558d7c2abff4efc94a5e4d179718a7, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 13
+    sprite: {fileID: 1371486353, guid: 12479be59031940f49d779eb4e26584f, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 14
+    sprite: {fileID: 286330709, guid: 128f2a129c2dd4621b3dd30098547885, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 15
+    sprite: {fileID: 1909250720, guid: 219466323dc1e4e24bbd4bf09c75973e, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 16
+    sprite: {fileID: 817722753, guid: 56a81a8937c4b4e8d8e56437304a7371, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  backgroundSprite: {fileID: 1745331509, guid: 8c0b9b24699554daeafe5721350f917b, type: 3}
+  menuBackgroundSprite: {fileID: 985181438, guid: 3812297aa008c4fb1b6ea598e29551b0, type: 3}
+  gameBackgroundSprite: {fileID: 1745331509, guid: 8c0b9b24699554daeafe5721350f917b, type: 3}
+  backgroundColor: {r: 0, g: 0.4671625, b: 0.9716981, a: 1}
+  menuSunburst: 1
+  showMenuPowerUps: 0
+  cardBackSprite: {fileID: 0}
+  removeIcon: {fileID: 326053021, guid: 3a23208e3000e4541bbaafd60a8c318d, type: 3}
+  undoIcon: {fileID: -338047938, guid: e33911bea70d240b8ae66a5ef9d65217, type: 3}
+  refreshIcon: {fileID: 526556285, guid: 39e8dc4871cf24f239e75f1e619a936e, type: 3}
+  peekabooSprites:
+  - {fileID: 1631466513, guid: 0b7bc0d14530e494682325999fbcdc4a, type: 3}
+  - {fileID: -1621261105, guid: 4d925c00457da4bb7a65fa32d512d475, type: 3}
+  - {fileID: -1677937418, guid: 010de2a07a2d540f6b4dfbc60ef9307a, type: 3}
+  - {fileID: -1041705014, guid: ef83f9217135a4c4e832b0965273ae2e, type: 3}
+  - {fileID: -1552004045, guid: 01a7c7355306f44b5a1e8a0502b34d2a, type: 3}
+  - {fileID: -1770730523, guid: 3266335d3a0b5459b8b624da69907604, type: 3}
+  - {fileID: -1372614679, guid: 8ec1f7053dc19427797185b5d45f6d9f, type: 3}
+  peekabooMinInterval: 1
+  peekabooMaxInterval: 3
+  peekabooShowTime: 2.5
+  peekabooSize: 400
   levels:
-  - tiles: 9
-    cardVarieties: 3
+  - tiles: 15
+    cardVarieties: 5
     layers: 2
     threeStarTime: 20
     twoStarTime: 40
     sideStackCards: 0
-  - tiles: 18
-    cardVarieties: 5
+  - tiles: 24
+    cardVarieties: 6
     layers: 2
     threeStarTime: 30
     twoStarTime: 60
     sideStackCards: 0
-  - tiles: 24
-    cardVarieties: 5
+  - tiles: 36
+    cardVarieties: 7
     layers: 3
     threeStarTime: 40
     twoStarTime: 80
     sideStackCards: 0
-  - tiles: 30
-    cardVarieties: 6
+  - tiles: 54
+    cardVarieties: 9
     layers: 3
     threeStarTime: 50
     twoStarTime: 95
     sideStackCards: 6
-  - tiles: 39
-    cardVarieties: 6
-    layers: 3
+  - tiles: 72
+    cardVarieties: 11
+    layers: 4
     threeStarTime: 60
     twoStarTime: 110
     sideStackCards: 0
-  - tiles: 48
-    cardVarieties: 7
+  - tiles: 105
+    cardVarieties: 13
     layers: 4
     threeStarTime: 75
     twoStarTime: 130
     sideStackCards: 6
-  - tiles: 57
-    cardVarieties: 7
-    layers: 4
+  - tiles: 135
+    cardVarieties: 15
+    layers: 5
     threeStarTime: 90
     twoStarTime: 150
     sideStackCards: 0
-  - tiles: 66
-    cardVarieties: 8
-    layers: 4
+  - tiles: 168
+    cardVarieties: 16
+    layers: 5
     threeStarTime: 105
     twoStarTime: 170
     sideStackCards: 9
@@ -100,10 +144,10 @@ MonoBehaviour:
     threeStarTime: 140
     twoStarTime: 220
     sideStackCards: 10
-  endlessVarieties: 8
-  endlessMinTiles: 30
-  endlessMaxTiles: 51
-  endlessLayers: 5
+  endlessVarieties: 16
+  endlessMinTiles: 120
+  endlessMaxTiles: 120
+  endlessLayers: 6
   endlessDuration: 180
   endlessStar3Time: 60
   endlessStar2Time: 120
