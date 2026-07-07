@@ -335,7 +335,7 @@ public class GameController : MonoBehaviour
 
         if (!w3.Connected)
         {
-            Ui.MakeButton("Connect", parent, "Connect Wallet", new Vector2(280, 58), new Vector2(0, centerY),
+            Ui.MakeButton("Connect", parent, "Connect Wallet", new Vector2(300, 58), new Vector2(0, centerY),
                 WalletTeal, Color.white, 24, () =>
                 {
                     w3.Connect();
@@ -343,8 +343,8 @@ public class GameController : MonoBehaviour
                 });
             if (w3.Simulated)
             {
-                Ui.Label("SimNote", parent, "(simulated outside WebGL builds)", 15,
-                    new Color(0.55f, 0.50f, 0.45f), new Vector2(0, centerY - 40f), new Vector2(320, 22),
+                Ui.Label("SimNote", parent, "(simulated outside WebGL builds)", 14,
+                    new Color(0.55f, 0.50f, 0.45f), new Vector2(0, centerY - 33f), new Vector2(320, 20),
                     style: FontStyle.Normal);
             }
         }
@@ -1350,44 +1350,39 @@ public class GameController : MonoBehaviour
         _pendSfxMute = PlayerPrefs.GetInt(SfxMuteKey, 0) == 1;
         _pendMusicMute = PlayerPrefs.GetInt(MusicMuteKey, 0) == 1;
 
-        var panel = BuildPopup("Settings", 700, 780);
+        var panel = BuildPopup("Settings", 760, 720);
 
         var track = new Color(0.82f, 0.68f, 0.52f);
         var boxCol = new Color(0.90f, 0.62f, 0.30f);
 
-        Ui.Label("MuteCap", panel, "Mute", 18, SoftBrown, new Vector2(305, 240), new Vector2(90, 24),
+        // --- audio rows (label hugs the slider, mute toggle on the right) ---
+        Ui.Label("MuteCap", panel, "Mute", 18, SoftBrown, new Vector2(215, 208), new Vector2(90, 24),
             style: FontStyle.Normal);
 
-        // SFX row
-        Ui.Label("SfxLbl", panel, "SFX", 28, Brown, new Vector2(-300, 205), new Vector2(150, 40),
-            TextAnchor.MiddleLeft);
-        Ui.MakeSlider(panel, new Vector2(40, 205), new Vector2(360, 34), _pendSfx,
+        Ui.Label("SfxLbl", panel, "SFX", 28, Brown, new Vector2(-170, 175), new Vector2(120, 40),
+            TextAnchor.MiddleRight);
+        Ui.MakeSlider(panel, new Vector2(30, 175), new Vector2(260, 34), _pendSfx,
             v => _pendSfx = v, track, Orange, DeepOrange);
-        Ui.MakeToggle(panel, new Vector2(305, 205), 40f, _pendSfxMute,
+        Ui.MakeToggle(panel, new Vector2(215, 175), 40f, _pendSfxMute,
             v => _pendSfxMute = v, boxCol, DeepOrange);
 
-        // Music row
-        Ui.Label("MusLbl", panel, "Music", 28, Brown, new Vector2(-300, 135), new Vector2(150, 40),
-            TextAnchor.MiddleLeft);
-        Ui.MakeSlider(panel, new Vector2(40, 135), new Vector2(360, 34), _pendMusic,
+        Ui.Label("MusLbl", panel, "Music", 28, Brown, new Vector2(-170, 115), new Vector2(120, 40),
+            TextAnchor.MiddleRight);
+        Ui.MakeSlider(panel, new Vector2(30, 115), new Vector2(260, 34), _pendMusic,
             v => _pendMusic = v, track, Orange, DeepOrange);
-        Ui.MakeToggle(panel, new Vector2(305, 135), 40f, _pendMusicMute,
+        Ui.MakeToggle(panel, new Vector2(215, 115), 40f, _pendMusicMute,
             v => _pendMusicMute = v, boxCol, DeepOrange);
 
-        // wallet
-        BuildWalletSection(panel, 55f);
-
-        // help + quit
-        Ui.MakeButton("Help", panel, "Help", new Vector2(250, 60), new Vector2(-140, -55),
+        // --- button column (spaced well below the audio rows) ---
+        BuildWalletSection(panel, 20f);
+        Ui.MakeButton("Help", panel, "Help", new Vector2(300, 58), new Vector2(0, -58),
             ButtonRose, Color.white, 26, ShowHelpPopup);
-        Ui.MakeButton("QuitGame", panel, "Quit Game", new Vector2(250, 60), new Vector2(140, -55),
+        Ui.MakeButton("QuitGame", panel, "Quit Game", new Vector2(300, 58), new Vector2(0, -128),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, () => Application.Quit());
 
-        // save + cancel
-        Ui.MakeButton("Save", panel, "Save", new Vector2(250, 66), new Vector2(-140, -160),
+        // close (saves) — extra padding above it, clear of Quit
+        Ui.MakeButton("Close", panel, "Close", new Vector2(300, 66), new Vector2(0, -228),
             Orange, Color.white, 28, SaveSettings);
-        Ui.MakeButton("CancelSettings", panel, "Cancel", new Vector2(250, 66), new Vector2(140, -160),
-            new Color(0.8f, 0.72f, 0.62f), Color.white, 28, ClosePopup);
     }
 
     void SaveSettings()
