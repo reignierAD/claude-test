@@ -344,7 +344,7 @@ public class GameController : MonoBehaviour
             if (w3.Simulated)
             {
                 Ui.Label("SimNote", parent, "(simulated outside WebGL builds)", 14,
-                    new Color(0.55f, 0.50f, 0.45f), new Vector2(0, centerY - 33f), new Vector2(320, 20),
+                    new Color(0.55f, 0.50f, 0.45f), new Vector2(0, centerY - 45f), new Vector2(320, 20),
                     style: FontStyle.Normal);
             }
         }
@@ -1375,13 +1375,13 @@ public class GameController : MonoBehaviour
 
         // --- button column (spaced well below the audio rows) ---
         BuildWalletSection(panel, 20f);
-        Ui.MakeButton("Help", panel, "Help", new Vector2(300, 58), new Vector2(0, -58),
+        Ui.MakeButton("Help", panel, "Help", new Vector2(300, 58), new Vector2(0, -78),
             ButtonRose, Color.white, 26, ShowHelpPopup);
-        Ui.MakeButton("QuitGame", panel, "Quit Game", new Vector2(300, 58), new Vector2(0, -128),
+        Ui.MakeButton("QuitGame", panel, "Quit Game", new Vector2(300, 58), new Vector2(0, -148),
             new Color(0.8f, 0.72f, 0.62f), Color.white, 26, () => Application.Quit());
 
         // close (saves) — extra padding above it, clear of Quit
-        Ui.MakeButton("Close", panel, "Close", new Vector2(300, 66), new Vector2(0, -228),
+        Ui.MakeButton("Close", panel, "Close", new Vector2(300, 66), new Vector2(0, -268),
             Orange, Color.white, 28, SaveSettings);
     }
 
