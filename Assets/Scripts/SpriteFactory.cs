@@ -13,6 +13,7 @@ public static class SpriteFactory
     static Sprite _circle;
     static Sprite _star;
     static Sprite _arrow;
+    static Sprite _gear;
     static Sprite _sunburst;
 
     /// <summary>White rounded-rect, 9-sliced so it scales to any size.</summary>
@@ -162,6 +163,51 @@ public static class SpriteFactory
             if (_arrow == null) _arrow = BuildArrow(64);
             return _arrow;
         }
+    }
+
+    /// <summary>White gear/cog with a hollow centre (settings icon).</summary>
+    public static Sprite Gear
+    {
+        get
+        {
+            if (_gear == null) _gear = BuildGear(64, 8);
+            return _gear;
+        }
+    }
+
+    static Sprite BuildGear(int size, int teeth)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.ARGB32, false);
+        tex.wrapMode = TextureWrapMode.Clamp;
+        float half = size * 0.5f;
+        float wedge = Mathf.PI * 2f / teeth;
+        float rTip = half * 0.94f, rRoot = half * 0.72f, rHole = half * 0.30f;
+        var pixels = new Color[size * size];
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                int hits = 0;
+                for (int sy = 0; sy < 2; sy++)
+                {
+                    for (int sx = 0; sx < 2; sx++)
+                    {
+                        float px = x + 0.25f + sx * 0.5f - half;
+                        float py = y + 0.25f + sy * 0.5f - half;
+                        float rr = Mathf.Sqrt(px * px + py * py);
+                        if (rr < rHole) continue;
+                        float ang = Mathf.Atan2(py, px) + Mathf.PI;
+                        float frac = (ang % wedge) / wedge; // 0..1 within a tooth
+                        float outer = frac < 0.5f ? rTip : rRoot;
+                        if (rr <= outer) hits++;
+                    }
+                }
+                pixels[y * size + x] = new Color(1f, 1f, 1f, hits / 4f);
+            }
+        }
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100f);
     }
 
     static Sprite BuildStar(int size)

@@ -77,6 +77,20 @@ public class GameSettings : ScriptableObject
     [Header("Menu UI")]
     [Tooltip("Show the power-ups inventory chip on the main menu.")]
     public bool showMenuPowerUps = true;
+    [Tooltip("Optional cog/settings icon for the menu button. Leave empty for the generated gear.")]
+    public Sprite settingsIcon;
+
+    [Header("Board & Zone Colors")]
+    [Tooltip("Border/frame color of every card.")]
+    public Color cardBorderColor = new Color(0.95f, 0.70f, 0.38f);
+    [Tooltip("Outline color of the clearing zone (tray).")]
+    public Color clearingZoneBorderColor = new Color(0.85f, 0.52f, 0.20f);
+    [Tooltip("Background fill of the clearing zone. Keep alpha low (~0.2) for a see-through panel.")]
+    public Color clearingZonePanelColor = new Color(0.99f, 0.80f, 0.47f, 0.20f);
+    [Tooltip("Outline color of the Remove/hold zone.")]
+    public Color removeZoneBorderColor = new Color(0.45f, 0.38f, 0.33f);
+    [Tooltip("Background fill of the Remove/hold zone. Keep alpha low (~0.2) for a see-through panel.")]
+    public Color removeZonePanelColor = new Color(0.60f, 0.53f, 0.47f, 0.20f);
 
     [Header("Card Back & Power-up Icons")]
     [Tooltip("Picture shown on face-down cards in the side piles. Leave empty for the plain generated back.")]
@@ -164,6 +178,11 @@ public class GameSettings : ScriptableObject
         };
 
         backgroundColor = new Color(1.00f, 0.95f, 0.86f);
+        cardBorderColor = new Color(0.95f, 0.70f, 0.38f);
+        clearingZoneBorderColor = new Color(0.85f, 0.52f, 0.20f);
+        clearingZonePanelColor = new Color(0.99f, 0.80f, 0.47f, 0.20f);
+        removeZoneBorderColor = new Color(0.45f, 0.38f, 0.33f);
+        removeZonePanelColor = new Color(0.60f, 0.53f, 0.47f, 0.20f);
         endlessVarieties = 8;
         endlessMinTiles = 30;
         endlessMaxTiles = 51;

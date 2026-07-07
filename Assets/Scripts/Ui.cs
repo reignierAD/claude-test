@@ -159,6 +159,94 @@ public static class Ui
         return img;
     }
 
+    /// <summary>
+    /// A zone with a (usually low-opacity) rounded fill and a full-color cartoon
+    /// outline on top. The <paramref name="fill"/> alpha controls how see-through
+    /// the panel is; the <paramref name="border"/> is drawn at full strength.
+    /// </summary>
+    public static Image ZonePanel(RectTransform rt, Color fill, Color border)
+    {
+        var fillImg = Panel(rt, fill);
+        fillImg.raycastTarget = false;
+        var frameRt = Stretch("ZoneBorder", rt);
+        var frame = frameRt.gameObject.AddComponent<Image>();
+        frame.sprite = SpriteFactory.RoundedRectFrame;
+        frame.type = Image.Type.Sliced;
+        frame.color = border;
+        frame.raycastTarget = false;
+        return fillImg;
+    }
+
+    /// <summary>
+    /// A horizontal draggable volume slider (uGUI Slider) with a rounded track,
+    /// fill, and circular handle. Value range 0..1.
+    /// </summary>
+    public static Slider MakeSlider(Transform parent, Vector2 pos, Vector2 size, float value,
+        Action<float> onChange, Color track, Color fill, Color handle)
+    {
+        var root = Rect("Slider", parent, size, pos);
+        var slider = root.gameObject.AddComponent<Slider>();
+
+        float mid = size.y * 0.5f;
+        float bar = Mathf.Max(6f, size.y * 0.32f);
+
+        var trackRt = Stretch("Track", root);
+        trackRt.offsetMin = new Vector2(mid, mid - bar * 0.5f);
+        trackRt.offsetMax = new Vector2(-mid, -(mid - bar * 0.5f));
+        PanelInner(trackRt, track).raycastTarget = true;
+
+        var fillArea = Stretch("FillArea", root);
+        fillArea.offsetMin = new Vector2(mid, mid - bar * 0.5f);
+        fillArea.offsetMax = new Vector2(-mid, -(mid - bar * 0.5f));
+        var fillRt = Stretch("Fill", fillArea);
+        PanelInner(fillRt, fill).raycastTarget = false;
+
+        var handleArea = Stretch("HandleArea", root);
+        handleArea.offsetMin = new Vector2(mid, 0f);
+        handleArea.offsetMax = new Vector2(-mid, 0f);
+        var handleRt = Rect("Handle", handleArea, new Vector2(size.y, size.y), Vector2.zero);
+        var handleImg = handleRt.gameObject.AddComponent<Image>();
+        handleImg.sprite = SpriteFactory.Circle;
+        handleImg.color = handle;
+
+        slider.fillRect = fillRt;
+        slider.handleRect = handleRt;
+        slider.targetGraphic = handleImg;
+        slider.direction = Slider.Direction.LeftToRight;
+        slider.minValue = 0f;
+        slider.maxValue = 1f;
+        slider.value = value;
+        if (onChange != null) slider.onValueChanged.AddListener(v => onChange(v));
+        return slider;
+    }
+
+    /// <summary>A square cartoon checkbox (uGUI Toggle) with a rounded box and a
+    /// checkmark graphic shown when ticked.</summary>
+    public static Toggle MakeToggle(Transform parent, Vector2 pos, float size, bool isOn,
+        Action<bool> onChange, Color box, Color check)
+    {
+        var root = Rect("Toggle", parent, new Vector2(size, size), pos);
+        var toggle = root.gameObject.AddComponent<Toggle>();
+
+        var boxImg = Panel(root, box);
+        var innerRt = Stretch("Box", root);
+        innerRt.offsetMin = new Vector2(3f, 3f);
+        innerRt.offsetMax = new Vector2(-3f, -3f);
+        PanelInner(innerRt, new Color(1f, 1f, 1f, 0.9f)).raycastTarget = false;
+
+        var checkRt = Rect("Check", root, new Vector2(size * 0.58f, size * 0.58f), Vector2.zero);
+        var checkImg = checkRt.gameObject.AddComponent<Image>();
+        checkImg.sprite = SpriteFactory.Circle;
+        checkImg.color = check;
+        checkImg.raycastTarget = false;
+
+        toggle.targetGraphic = boxImg;
+        toggle.graphic = checkImg;
+        toggle.isOn = isOn;
+        if (onChange != null) toggle.onValueChanged.AddListener(v => onChange(v));
+        return toggle;
+    }
+
     /// <summary>Dark, cartoonish "ink" tone derived from a border color.</summary>
     public static Color CartoonInk(Color c)
     {

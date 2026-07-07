@@ -85,6 +85,14 @@ public class GameController : MonoBehaviour
     Button _claimButton;
     Text _claimStatusText;
 
+    // ---- audio settings (persisted; no clips wired yet) ----
+    const string SfxVolKey = "sfx_vol";
+    const string MusicVolKey = "music_vol";
+    const string SfxMuteKey = "sfx_mute";
+    const string MusicMuteKey = "music_mute";
+    float _pendSfx, _pendMusic;
+    bool _pendSfxMute, _pendMusicMute;
+
     // =====================================================================
     // setup
     // =====================================================================
@@ -93,6 +101,7 @@ public class GameController : MonoBehaviour
     {
         _canvasRoot = (RectTransform)canvas.transform;
         LoadInventory();
+        ApplyAudioSettings();
         BuildBackground();
         BuildGameScreen();
         _tray.onTriple = HandleTriple;
@@ -203,8 +212,14 @@ public class GameController : MonoBehaviour
         StarIcon.Create(_menuScreen, 42, new Vector2(-290, -62), new Vector2(1f, 1f));
         Ui.Label("TotalStars", _menuScreen, total + "/" + (levelCount * 3), 30, Brown,
             new Vector2(-195, -62), new Vector2(130, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
-        Ui.MakeButton("Help", _menuScreen, "?", new Vector2(56, 56), new Vector2(-70, -62),
-            Orange, Color.white, 32, ShowHelpPopup, new Vector2(1f, 1f));
+        var settingsBtn = Ui.MakeButton("Settings", _menuScreen, "", new Vector2(56, 56), new Vector2(-70, -62),
+            Orange, Color.white, 32, ShowSettingsPopup, new Vector2(1f, 1f));
+        var cogRt = Ui.Rect("Cog", settingsBtn.transform, new Vector2(40, 40), Vector2.zero);
+        var cogImg = cogRt.gameObject.AddComponent<Image>();
+        cogImg.sprite = GameConfig.S.settingsIcon != null ? GameConfig.S.settingsIcon : SpriteFactory.Gear;
+        cogImg.color = Color.white;
+        cogImg.preserveAspect = true;
+        cogImg.raycastTarget = false;
 
         // level grid (5 per row)
         int rows = (levelCount + 4) / 5;
@@ -261,8 +276,7 @@ public class GameController : MonoBehaviour
                 20, SoftBrown, Vector2.zero, new Vector2(440, 36), style: FontStyle.Normal);
         }
 
-        // wallet corner (bottom right)
-        BuildWalletCorner();
+        // (wallet UI now lives inside the Settings popup)
 
         // reset progress (handy while testing)
         Ui.MakeButton("Reset", _menuScreen, "Reset Progress", new Vector2(190, 46), new Vector2(125, 48),
@@ -313,29 +327,33 @@ public class GameController : MonoBehaviour
         return btn;
     }
 
-    void BuildWalletCorner()
+    /// <summary>Wallet connect / status row, built into the Settings popup.</summary>
+    void BuildWalletSection(Transform parent, float centerY)
     {
         var w3 = Web3Bridge.Instance;
         if (w3 == null) return;
 
         if (!w3.Connected)
         {
+            Ui.MakeButton("Connect", parent, "Connect Wallet", new Vector2(280, 58), new Vector2(0, centerY),
+                WalletTeal, Color.white, 24, () =>
+                {
+                    w3.Connect();
+                    ShowSettingsPopup(); // rebuild so the connected state shows
+                });
             if (w3.Simulated)
             {
-                Ui.Label("SimNote", _menuScreen, "(simulated outside WebGL builds)", 15,
-                    new Color(0.55f, 0.50f, 0.45f), new Vector2(-155, 92), new Vector2(260, 22),
-                    style: FontStyle.Normal, anchor: new Vector2(1f, 0f));
+                Ui.Label("SimNote", parent, "(simulated outside WebGL builds)", 15,
+                    new Color(0.55f, 0.50f, 0.45f), new Vector2(0, centerY - 40f), new Vector2(320, 22),
+                    style: FontStyle.Normal);
             }
-            Ui.MakeButton("Connect", _menuScreen, "Connect Wallet", new Vector2(240, 60), new Vector2(-155, 52),
-                WalletTeal, Color.white, 24, () => w3.Connect(), new Vector2(1f, 0f));
         }
         else
         {
-            var panel = Ui.Rect("Wallet", _menuScreen, new Vector2(300, 82), new Vector2(-180, 64), new Vector2(1f, 0f));
-            Ui.Panel(panel, new Color(1f, 1f, 1f, 0.85f));
-            Ui.Label("Addr", panel, w3.ShortAddress + (w3.Simulated ? "  (sim)" : ""), 20, Brown,
-                new Vector2(0, 17), new Vector2(270, 26), style: FontStyle.Normal);
-            Ui.Label("Bal", panel, w3.Balance + " RST", 26, WalletTeal, new Vector2(0, -15), new Vector2(270, 32));
+            Ui.Label("Addr", parent, "Wallet  " + w3.ShortAddress + (w3.Simulated ? "  (sim)" : ""), 20, Brown,
+                new Vector2(0, centerY + 16f), new Vector2(560, 26), style: FontStyle.Normal);
+            Ui.Label("Bal", parent, w3.Balance + " RST", 26, WalletTeal,
+                new Vector2(0, centerY - 16f), new Vector2(560, 32));
         }
     }
 
@@ -399,19 +417,20 @@ public class GameController : MonoBehaviour
         zoneImg.raycastTarget = false;
         _boardRoot = Ui.Rect("Board", _gameScreen, new Vector2(10, 10), new Vector2(-40, 90));
 
-        // side stacks (face-down piles, with clear air above the clearing zone)
-        _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-420, 245), new Vector2(0.5f, 0f));
-        _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 245), new Vector2(0.5f, 0f));
+        // side stacks (face-down piles, with clear air above the clearing zone),
+        // pulled in toward the middle so they don't hug the screen edges
+        _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-330, 245), new Vector2(0.5f, 0f));
+        _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(330, 245), new Vector2(0.5f, 0f));
 
         // hold area (bottom left) — Remove item drops cards here.
-        // Hollow: only a cartoon outline, the interior is fully transparent.
+        // Low-opacity fill + full-color cartoon outline (colors from GameSettings).
         _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 138), new Vector2(-480, 85), new Vector2(0.5f, 0f));
-        Ui.OutlineZone(_holdRoot, new Color(0.42f, 0.36f, 0.31f, 0.85f));
+        Ui.ZonePanel(_holdRoot, GameConfig.S.removeZonePanelColor, GameConfig.S.removeZoneBorderColor);
 
         // clearing zone (bottom center, dropped lower for breathing room).
-        // Hollow: only a cartoon outline, the interior is fully transparent.
+        // Low-opacity fill + full-color cartoon outline (colors from GameSettings).
         _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 138), new Vector2(160, 85), new Vector2(0.5f, 0f));
-        Ui.OutlineZone(_trayRoot, new Color(0.85f, 0.52f, 0.20f, 0.9f));
+        Ui.ZonePanel(_trayRoot, GameConfig.S.clearingZonePanelColor, GameConfig.S.clearingZoneBorderColor);
 
         // toast / combo text
         _toastText = Ui.Label("Toast", _gameScreen, "", 38, DeepOrange,
@@ -1310,6 +1329,76 @@ public class GameController : MonoBehaviour
             TextAnchor.UpperLeft, FontStyle.Normal, null, true);
         Ui.MakeButton("Ok", panel, "Got it!", new Vector2(190, 66), new Vector2(0, -260),
             Orange, Color.white, 26, ClosePopup);
+    }
+
+    // =====================================================================
+    // settings
+    // =====================================================================
+
+    void ApplyAudioSettings()
+    {
+        // No AudioSources are wired yet, so drive the global listener as a
+        // stand-in for the music/master channel.
+        bool musicMute = PlayerPrefs.GetInt(MusicMuteKey, 0) == 1;
+        AudioListener.volume = musicMute ? 0f : PlayerPrefs.GetFloat(MusicVolKey, 0.7f);
+    }
+
+    void ShowSettingsPopup()
+    {
+        _pendSfx = PlayerPrefs.GetFloat(SfxVolKey, 0.8f);
+        _pendMusic = PlayerPrefs.GetFloat(MusicVolKey, 0.7f);
+        _pendSfxMute = PlayerPrefs.GetInt(SfxMuteKey, 0) == 1;
+        _pendMusicMute = PlayerPrefs.GetInt(MusicMuteKey, 0) == 1;
+
+        var panel = BuildPopup("Settings", 700, 780);
+
+        var track = new Color(0.82f, 0.68f, 0.52f);
+        var boxCol = new Color(0.90f, 0.62f, 0.30f);
+
+        Ui.Label("MuteCap", panel, "Mute", 18, SoftBrown, new Vector2(305, 240), new Vector2(90, 24),
+            style: FontStyle.Normal);
+
+        // SFX row
+        Ui.Label("SfxLbl", panel, "SFX", 28, Brown, new Vector2(-300, 205), new Vector2(150, 40),
+            TextAnchor.MiddleLeft);
+        Ui.MakeSlider(panel, new Vector2(40, 205), new Vector2(360, 34), _pendSfx,
+            v => _pendSfx = v, track, Orange, DeepOrange);
+        Ui.MakeToggle(panel, new Vector2(305, 205), 40f, _pendSfxMute,
+            v => _pendSfxMute = v, boxCol, DeepOrange);
+
+        // Music row
+        Ui.Label("MusLbl", panel, "Music", 28, Brown, new Vector2(-300, 135), new Vector2(150, 40),
+            TextAnchor.MiddleLeft);
+        Ui.MakeSlider(panel, new Vector2(40, 135), new Vector2(360, 34), _pendMusic,
+            v => _pendMusic = v, track, Orange, DeepOrange);
+        Ui.MakeToggle(panel, new Vector2(305, 135), 40f, _pendMusicMute,
+            v => _pendMusicMute = v, boxCol, DeepOrange);
+
+        // wallet
+        BuildWalletSection(panel, 55f);
+
+        // help + quit
+        Ui.MakeButton("Help", panel, "Help", new Vector2(250, 60), new Vector2(-140, -55),
+            ButtonRose, Color.white, 26, ShowHelpPopup);
+        Ui.MakeButton("QuitGame", panel, "Quit Game", new Vector2(250, 60), new Vector2(140, -55),
+            new Color(0.8f, 0.72f, 0.62f), Color.white, 26, () => Application.Quit());
+
+        // save + cancel
+        Ui.MakeButton("Save", panel, "Save", new Vector2(250, 66), new Vector2(-140, -160),
+            Orange, Color.white, 28, SaveSettings);
+        Ui.MakeButton("CancelSettings", panel, "Cancel", new Vector2(250, 66), new Vector2(140, -160),
+            new Color(0.8f, 0.72f, 0.62f), Color.white, 28, ClosePopup);
+    }
+
+    void SaveSettings()
+    {
+        PlayerPrefs.SetFloat(SfxVolKey, _pendSfx);
+        PlayerPrefs.SetFloat(MusicVolKey, _pendMusic);
+        PlayerPrefs.SetInt(SfxMuteKey, _pendSfxMute ? 1 : 0);
+        PlayerPrefs.SetInt(MusicMuteKey, _pendMusicMute ? 1 : 0);
+        PlayerPrefs.Save();
+        ApplyAudioSettings();
+        ClosePopup();
     }
 
     // =====================================================================

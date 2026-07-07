@@ -54,7 +54,7 @@ public class Card : MonoBehaviour
         var frame = frameRt.gameObject.AddComponent<Image>();
         frame.sprite = SpriteFactory.RoundedRect;
         frame.type = Image.Type.Sliced;
-        frame.color = new Color(0.95f, 0.70f, 0.38f);
+        frame.color = GameConfig.S.cardBorderColor;
 
         // the face doubles as a stencil mask, so pictures get the same
         // rounded corners as the card and never show white side bars
