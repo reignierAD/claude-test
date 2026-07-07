@@ -71,7 +71,7 @@ public class Peekaboo : MonoBehaviour
 
         var rt = Ui.Rect("Peekaboo", transform, new Vector2(size, size), hidden, anchor);
         rt.SetAsLastSibling(); // in front of the menu UI
-        rt.localEulerAngles = new Vector3(0f, 0f, baseAngle + Random.Range(-14f, 14f));
+        rt.localEulerAngles = new Vector3(0f, 0f, baseAngle);
         var img = rt.gameObject.AddComponent<Image>();
         img.sprite = sprite;
         img.preserveAspect = true;
