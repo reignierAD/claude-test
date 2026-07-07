@@ -186,8 +186,14 @@ public class GameController : MonoBehaviour
         _menuScreen = Ui.Stretch("Menu", _canvasRoot);
         int levelCount = GameConfig.S.LevelCount;
 
-        Ui.Label("Title", _menuScreen, "Raggler's Challenge", 68, DeepOrange,
-            new Vector2(0, 330), new Vector2(1200, 90));
+        var menuTitle = Ui.Label("Title", _menuScreen, "Raggler's Challenge", 70, DeepOrange,
+            new Vector2(0, 330), new Vector2(1200, 90), font: Ui.TitleFont);
+        var menuTitleOutline = menuTitle.gameObject.AddComponent<Outline>();
+        menuTitleOutline.effectColor = Color.white;
+        menuTitleOutline.effectDistance = new Vector2(3.5f, -3.5f);
+        var menuTitleShadow = menuTitle.gameObject.AddComponent<Shadow>();
+        menuTitleShadow.effectColor = new Color(0.36f, 0.20f, 0.06f, 0.55f);
+        menuTitleShadow.effectDistance = new Vector2(0f, -6f);
         Ui.Label("Subtitle", _menuScreen, "Raggler made off with everyone's gifts! Match three to take them back!",
             26, Brown, new Vector2(0, 262), new Vector2(1200, 40), style: FontStyle.Normal);
 
@@ -219,7 +225,7 @@ public class GameController : MonoBehaviour
 
             Ui.Label("Num", body, (idx + 1).ToString(), 52,
                 unlocked ? DeepOrange : new Color(0.6f, 0.55f, 0.5f),
-                new Vector2(0, 18), new Vector2(160, 60));
+                new Vector2(0, 18), new Vector2(160, 60), font: Ui.TitleFont);
 
             int earned = LevelStars(idx);
             for (int s = 0; s < 3; s++)
@@ -240,7 +246,7 @@ public class GameController : MonoBehaviour
         BumpButton("Endless", _menuScreen, new Vector2(600, 112), new Vector2(0, endlessY),
             ButtonRose, new Color(0.78f, 0.38f, 0.34f), new Color(0.55f, 0.26f, 0.23f, 0.85f),
             StartEndless, out endlessBody);
-        Ui.Label("EndlessLabel", endlessBody, "Endless Mode", 34, Color.white, new Vector2(0, 17), new Vector2(560, 44));
+        Ui.Label("EndlessLabel", endlessBody, "Endless Mode", 34, Color.white, new Vector2(0, 17), new Vector2(560, 44), font: Ui.TitleFont);
         Ui.Label("EndlessBest", endlessBody,
             "Best Score: " + PlayerPrefs.GetInt("endless_best", 0) + "   ·   keep your stars before time runs out!",
             20, new Color(1f, 0.93f, 0.85f), new Vector2(0, -23), new Vector2(560, 30), style: FontStyle.Normal);
@@ -281,8 +287,17 @@ public class GameController : MonoBehaviour
         shadowImg.raycastTarget = false;
 
         body = Ui.Rect("Body", root, size, Vector2.zero);
-        var borderImg = Ui.Panel(body, border);
-        var fillRt = Ui.Stretch("Fill", body);
+        // dark cartoon ink outline, then the colored bevel ring, then the fill
+        var borderImg = Ui.Panel(body, Ui.CartoonInk(border));
+        var bevelRt = Ui.Stretch("Bevel", body);
+        bevelRt.offsetMin = new Vector2(3f, 3f);
+        bevelRt.offsetMax = new Vector2(-3f, -3f);
+        var bevelImg = bevelRt.gameObject.AddComponent<Image>();
+        bevelImg.color = border;
+        bevelImg.sprite = SpriteFactory.RoundedRectMid;
+        bevelImg.type = Image.Type.Sliced;
+        bevelImg.raycastTarget = false;
+        var fillRt = Ui.Stretch("Fill", bevelRt);
         fillRt.offsetMin = new Vector2(5f, 5f);
         fillRt.offsetMax = new Vector2(-5f, -5f);
         var fillImg = Ui.PanelInner(fillRt, fill);
@@ -1063,17 +1078,19 @@ public class GameController : MonoBehaviour
         dim.color = new Color(0f, 0f, 0f, 0.55f); // also blocks clicks behind it
 
         var panel = Ui.Rect("Panel", _popupLayer, new Vector2(width, height), Vector2.zero);
-        Ui.BorderPanel(panel, Cream, new Color(0.90f, 0.62f, 0.30f), 7f);
+        // chunky cartoon frame: thick dark-brown ink outline around a warm border
+        Ui.BorderPanel(panel, Cream, new Color(0.95f, 0.66f, 0.32f), 11f,
+            new Color(0.36f, 0.20f, 0.08f));
         Tween.ScaleIn(panel, 0f, 0.35f);
 
-        var titleText = Ui.Label("Title", panel, title, 54, titleColor ?? DeepOrange,
-            new Vector2(0, height * 0.5f - 62f), new Vector2(width - 80f, 66));
+        var titleText = Ui.Label("Title", panel, title, 56, titleColor ?? DeepOrange,
+            new Vector2(0, height * 0.5f - 64f), new Vector2(width - 80f, 70), font: Ui.TitleFont);
         var titleOutline = titleText.gameObject.AddComponent<Outline>();
         titleOutline.effectColor = Color.white;
-        titleOutline.effectDistance = new Vector2(3f, -3f);
+        titleOutline.effectDistance = new Vector2(3.5f, -3.5f);
         var titleShadow = titleText.gameObject.AddComponent<Shadow>();
-        titleShadow.effectColor = new Color(0.42f, 0.24f, 0.08f, 0.60f);
-        titleShadow.effectDistance = new Vector2(0f, -5f);
+        titleShadow.effectColor = new Color(0.36f, 0.20f, 0.06f, 0.65f);
+        titleShadow.effectDistance = new Vector2(0f, -6f);
         Tween.ScaleIn((RectTransform)titleText.transform, 0.05f, 0.4f);
         return panel;
     }

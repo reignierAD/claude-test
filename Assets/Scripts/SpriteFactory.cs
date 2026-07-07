@@ -7,6 +7,7 @@ using UnityEngine;
 public static class SpriteFactory
 {
     static Sprite _rounded;
+    static Sprite _roundedMid;
     static Sprite _roundedInner;
     static Sprite _circle;
     static Sprite _star;
@@ -20,6 +21,20 @@ public static class SpriteFactory
         {
             if (_rounded == null) _rounded = BuildRoundedRect(64, 16f);
             return _rounded;
+        }
+    }
+
+    /// <summary>
+    /// Rounded-rect with a mid corner radius, for the colored ring that sits
+    /// between the dark cartoon ink outline and the inner fill so all three
+    /// curves stay concentric.
+    /// </summary>
+    public static Sprite RoundedRectMid
+    {
+        get
+        {
+            if (_roundedMid == null) _roundedMid = BuildRoundedRect(64, 13f);
+            return _roundedMid;
         }
     }
 

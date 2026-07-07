@@ -8,6 +8,7 @@ using UnityEngine.UI;
 public static class Ui
 {
     static Font _font;
+    static Font _titleFont;
 
     public static Font DefaultFont
     {
@@ -20,6 +21,38 @@ public static class Ui
                     _font = Font.CreateDynamicFontFromOSFont("Arial", 16);
             }
             return _font;
+        }
+    }
+
+    /// <summary>
+    /// A chunkier "display" font for titles and buttons so the cartoon theme
+    /// reads stronger than the plain body font. Tries a list of rounded/bold OS
+    /// faces and falls back to the default font when none are installed. (For a
+    /// guaranteed look in a WebGL build, import a real TTF and assign it here.)
+    /// </summary>
+    public static Font TitleFont
+    {
+        get
+        {
+            if (_titleFont == null)
+            {
+                string[] candidates =
+                {
+                    "Comic Sans MS", "Comic Neue", "Chalkboard SE",
+                    "Arial Rounded MT Bold", "Verdana", "Trebuchet MS", "Arial Black",
+                };
+                foreach (var name in candidates)
+                {
+                    var f = Font.CreateDynamicFontFromOSFont(name, 16);
+                    if (f != null && f.name != null && f.name.IndexOf(name, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        _titleFont = f;
+                        break;
+                    }
+                }
+                if (_titleFont == null) _titleFont = DefaultFont;
+            }
+            return _titleFont;
         }
     }
 
@@ -78,28 +111,52 @@ public static class Ui
     }
 
     /// <summary>
-    /// Rounded panel with a contrasting border: the root image is the border
-    /// color and a stretched child, inset by the border width, is the fill.
-    /// Children added afterwards draw above the fill.
+    /// Cartoon-framed rounded panel: a dark "ink" outline (root), a colored
+    /// border ring inside it, and the inner fill. The three concentric radii
+    /// (outer / mid / inner) keep every curve aligned. Children added afterwards
+    /// draw above the fill. Pass <paramref name="outline"/> to override the
+    /// auto-derived ink color.
     /// </summary>
-    public static Image BorderPanel(RectTransform rt, Color fill, Color border, float borderWidth = 6f)
+    public static Image BorderPanel(RectTransform rt, Color fill, Color border, float borderWidth = 6f,
+        Color? outline = null)
     {
-        Panel(rt, border);
-        var fillRt = Stretch("Fill", rt);
-        fillRt.offsetMin = new Vector2(borderWidth, borderWidth);
-        fillRt.offsetMax = new Vector2(-borderWidth, -borderWidth);
+        // layer 1: dark ink outline (the root image)
+        Panel(rt, outline ?? CartoonInk(border));
+
+        // layer 2: colored border ring (mid radius, inset by the ink thickness)
+        float ink = Mathf.Max(2f, borderWidth * 0.45f);
+        var borderRt = Stretch("Border", rt);
+        borderRt.offsetMin = new Vector2(ink, ink);
+        borderRt.offsetMax = new Vector2(-ink, -ink);
+        var borderImg = borderRt.gameObject.AddComponent<Image>();
+        borderImg.color = border;
+        borderImg.sprite = SpriteFactory.RoundedRectMid;
+        borderImg.type = Image.Type.Sliced;
+        borderImg.raycastTarget = false;
+
+        // layer 3: inner fill (inner radius), total inset ≈ borderWidth from the edge
+        var fillRt = Stretch("Fill", borderRt);
+        float rest = Mathf.Max(2f, borderWidth - ink);
+        fillRt.offsetMin = new Vector2(rest, rest);
+        fillRt.offsetMax = new Vector2(-rest, -rest);
         var img = PanelInner(fillRt, fill);
         img.raycastTarget = false;
         return img;
     }
 
+    /// <summary>Dark, cartoonish "ink" tone derived from a border color.</summary>
+    public static Color CartoonInk(Color c)
+    {
+        return new Color(c.r * 0.32f, c.g * 0.28f, c.b * 0.26f, Mathf.Min(1f, c.a + 0.15f));
+    }
+
     public static Text Label(string name, Transform parent, string content, int fontSize, Color color,
         Vector2 pos, Vector2 size, TextAnchor align = TextAnchor.MiddleCenter,
-        FontStyle style = FontStyle.Bold, Vector2? anchor = null, bool wrap = false)
+        FontStyle style = FontStyle.Bold, Vector2? anchor = null, bool wrap = false, Font font = null)
     {
         var rt = Rect(name, parent, size, pos, anchor);
         var text = rt.gameObject.AddComponent<Text>();
-        text.font = DefaultFont;
+        text.font = font ?? DefaultFont;
         text.text = content;
         text.fontSize = fontSize;
         text.fontStyle = style;
@@ -125,9 +182,18 @@ public static class Ui
         shadowImg.raycastTarget = false;
 
         var body = Rect("Body", rt, size, Vector2.zero);
-        var borderImg = Panel(body, Darken(bg, 0.74f, 1f));
+        // dark cartoon ink outline, then the colored bevel ring inside it
+        var borderImg = Panel(body, CartoonInk(bg));
         borderImg.raycastTarget = false;
-        var fillRt = Stretch("Fill", body);
+        var bevelRt = Stretch("Bevel", body);
+        bevelRt.offsetMin = new Vector2(3f, 3f);
+        bevelRt.offsetMax = new Vector2(-3f, -3f);
+        var bevelImg = bevelRt.gameObject.AddComponent<Image>();
+        bevelImg.color = Darken(bg, 0.74f, 1f);
+        bevelImg.sprite = SpriteFactory.RoundedRectMid;
+        bevelImg.type = Image.Type.Sliced;
+        bevelImg.raycastTarget = false;
+        var fillRt = Stretch("Fill", bevelRt);
         fillRt.offsetMin = new Vector2(4f, 4f);
         fillRt.offsetMax = new Vector2(-4f, -4f);
         var fillImg = PanelInner(fillRt, bg);
@@ -135,7 +201,7 @@ public static class Ui
         var btn = rt.gameObject.AddComponent<Button>();
         btn.targetGraphic = fillImg; // disabled/pressed tint covers the body
         if (!string.IsNullOrEmpty(label))
-            Label("Label", body, label, fontSize, textColor, Vector2.zero, size);
+            Label("Label", body, label, fontSize, textColor, Vector2.zero, size, font: TitleFont);
         if (onClick != null)
             btn.onClick.AddListener(() => onClick());
         return btn;
