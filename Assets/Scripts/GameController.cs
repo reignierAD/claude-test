@@ -15,7 +15,6 @@ public class GameController : MonoBehaviour
 
     // ---- theme ----
     static readonly Color Cream = new Color(1.00f, 0.95f, 0.86f);
-    static readonly Color CreamDark = new Color(0.99f, 0.88f, 0.72f);
     static readonly Color Orange = new Color(0.96f, 0.62f, 0.25f);
     static readonly Color DeepOrange = new Color(0.93f, 0.45f, 0.30f);
     static readonly Color Brown = new Color(0.45f, 0.30f, 0.15f);
@@ -70,6 +69,7 @@ public class GameController : MonoBehaviour
 
     // ---- HUD refs ----
     Text _stageText, _timerText, _scoreText, _toastText;
+    RectTransform _scoreBadge;
     readonly StarIcon[] _hudStars = new StarIcon[3];
     Button _removeBtn, _undoBtn, _refreshBtn;
     Text _removeInv, _undoInv, _refreshInv;
@@ -364,23 +364,30 @@ public class GameController : MonoBehaviour
         arrowImg.color = Color.white;
         arrowImg.raycastTarget = false;
 
-        _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 34, Brown,
-            new Vector2(320, -58), new Vector2(400, 50), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f));
+        _stageText = Ui.Label("Stage", _gameScreen, "Level 1", 36, DeepOrange,
+            new Vector2(320, -58), new Vector2(460, 54), TextAnchor.MiddleLeft, anchor: new Vector2(0f, 1f),
+            font: Ui.TitleFont);
+        AddCartoonText(_stageText, 3f);
 
-        // timer + stars (top center)
-        var timerBg = Ui.Rect("TimerBg", _gameScreen, new Vector2(190, 54), new Vector2(0, -42), new Vector2(0.5f, 1f));
-        Ui.Panel(timerBg, CreamDark);
-        _timerText = Ui.Label("Timer", timerBg, "00:00", 32, Brown, Vector2.zero, new Vector2(190, 54));
+        // timer + stars (top center) — cartoon badge with a slightly see-through fill
+        var timerBg = Ui.Rect("TimerBg", _gameScreen, new Vector2(200, 60), new Vector2(0, -46), new Vector2(0.5f, 1f));
+        Ui.BorderPanel(timerBg, new Color(1f, 0.96f, 0.85f, 0.42f), new Color(0.95f, 0.66f, 0.32f, 0.90f), 6f);
+        _timerText = Ui.Label("Timer", timerBg, "00:00", 34, new Color(0.50f, 0.28f, 0.10f),
+            Vector2.zero, new Vector2(200, 60), font: Ui.TitleFont);
+        AddCartoonText(_timerText, 2.5f);
         for (int s = 0; s < 3; s++)
-            _hudStars[s] = StarIcon.Create(_gameScreen, 40, new Vector2((s - 1) * 50f, -96), new Vector2(0.5f, 1f));
+            _hudStars[s] = StarIcon.Create(_gameScreen, 40, new Vector2((s - 1) * 50f, -100), new Vector2(0.5f, 1f));
 
-        // score (top right, kept away from the edge)
-        _scoreText = Ui.Label("Score", _gameScreen, "Score  0", 32, Brown,
-            new Vector2(-190, -58), new Vector2(300, 50), TextAnchor.MiddleRight, anchor: new Vector2(1f, 1f));
+        // score (top right) — cartoon coin badge that punches when you score
+        _scoreBadge = Ui.Rect("ScoreBadge", _gameScreen, new Vector2(300, 64), new Vector2(-170, -58), new Vector2(1f, 1f));
+        Ui.BorderPanel(_scoreBadge, new Color(1f, 0.90f, 0.58f, 0.92f), new Color(0.95f, 0.66f, 0.32f, 0.95f), 6f);
+        StarIcon.Create(_scoreBadge, 42, new Vector2(-116, 0));
+        _scoreText = Ui.Label("Score", _scoreBadge, "Score  0", 28, new Color(0.50f, 0.28f, 0.10f),
+            new Vector2(22, 0), new Vector2(232, 60), TextAnchor.MiddleCenter, font: Ui.TitleFont);
+        AddCartoonText(_scoreText, 2.5f);
 
-        // item buttons (right side)
+        // item buttons (right side) — no backdrop, the buttons float on the board
         var itemPanel = Ui.Rect("Items", _gameScreen, new Vector2(160, 440), new Vector2(-105, 70), new Vector2(1f, 0.5f));
-        Ui.Panel(itemPanel, new Color(0.98f, 0.80f, 0.50f, 0.85f));
         _removeBtn = BuildItemButton(itemPanel, "Remove", 140f, GameConfig.S.removeIcon, UseRemove, out _removeInv, out _removeUsed);
         _undoBtn = BuildItemButton(itemPanel, "Undo", 0f, GameConfig.S.undoIcon, UseUndo, out _undoInv, out _undoUsed);
         _refreshBtn = BuildItemButton(itemPanel, "Refresh", -140f, GameConfig.S.refreshIcon, UseRefresh, out _refreshInv, out _refreshUsed);
@@ -396,13 +403,15 @@ public class GameController : MonoBehaviour
         _leftStackRoot = Ui.Rect("LeftStack", _gameScreen, new Vector2(10, 10), new Vector2(-420, 245), new Vector2(0.5f, 0f));
         _rightStackRoot = Ui.Rect("RightStack", _gameScreen, new Vector2(10, 10), new Vector2(420, 245), new Vector2(0.5f, 0f));
 
-        // hold area (bottom left) — Remove item drops cards here
+        // hold area (bottom left) — Remove item drops cards here.
+        // Transparent fill: just a cartoon outline marks the zone.
         _holdRoot = Ui.Rect("Hold", _gameScreen, new Vector2(370, 138), new Vector2(-480, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0.30f), new Color(0.42f, 0.36f, 0.31f, 0.70f));
+        Ui.BorderPanel(_holdRoot, new Color(0.60f, 0.53f, 0.47f, 0f), new Color(0.42f, 0.36f, 0.31f, 0.55f));
 
-        // clearing zone (bottom center, dropped lower for breathing room)
+        // clearing zone (bottom center, dropped lower for breathing room).
+        // Transparent fill: just a cartoon outline marks the zone.
         _trayRoot = Ui.Rect("Tray", _gameScreen, new Vector2(830, 138), new Vector2(160, 85), new Vector2(0.5f, 0f));
-        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0.45f), new Color(0.85f, 0.52f, 0.20f, 0.80f));
+        Ui.BorderPanel(_trayRoot, new Color(0.99f, 0.80f, 0.47f, 0f), new Color(0.85f, 0.52f, 0.20f, 0.65f));
 
         // toast / combo text
         _toastText = Ui.Label("Toast", _gameScreen, "", 38, DeepOrange,
@@ -690,6 +699,7 @@ public class GameController : MonoBehaviour
         int points = GameConfig.MatchScore * _combo;
         _score += points;
         ScorePop(points, _combo);
+        ScoreGainFx(points);
     }
 
     /// <summary>
@@ -750,6 +760,84 @@ public class GameController : MonoBehaviour
             t += Time.deltaTime;
             float p = Mathf.Clamp01(t / dur);
             rt.anchoredPosition = start + new Vector2(0f, 90f * p);
+            group.alpha = 1f - p;
+            yield return null;
+        }
+        if (rt != null) Destroy(rt.gameObject);
+    }
+
+    /// <summary>One white outline + one soft drop shadow — the sharp cartoon
+    /// text treatment used across the HUD and menus.</summary>
+    static void AddCartoonText(Text t, float dist)
+    {
+        var outline = t.gameObject.AddComponent<Outline>();
+        outline.effectColor = Color.white;
+        outline.effectDistance = new Vector2(dist, -dist);
+        var shadow = t.gameObject.AddComponent<Shadow>();
+        shadow.effectColor = new Color(0.36f, 0.20f, 0.06f, 0.55f);
+        shadow.effectDistance = new Vector2(0f, -(dist + 2f));
+    }
+
+    /// <summary>Reaction on the HUD score when a match banks points: the coin
+    /// badge punches and a little "+N" bubble pops out of it and floats up.</summary>
+    void ScoreGainFx(int points)
+    {
+        if (_scoreBadge != null)
+            StartCoroutine(PunchScale(_scoreBadge, 0.20f, 0.30f));
+
+        Vector2 at = (_scoreBadge != null ? _scoreBadge.anchoredPosition : new Vector2(-170f, -58f))
+            + new Vector2(-40f, -48f);
+        var rt = Ui.Rect("ScoreBubble", _gameScreen, new Vector2(120, 120), at, new Vector2(1f, 1f));
+        var group = rt.gameObject.AddComponent<CanvasGroup>();
+        group.blocksRaycasts = false;
+
+        var coin = rt.gameObject.AddComponent<Image>();
+        coin.sprite = SpriteFactory.Circle;
+        coin.color = StarGold;
+        coin.raycastTarget = false;
+        var ring = Ui.Rect("Ring", rt, new Vector2(96, 96), Vector2.zero);
+        var ringImg = ring.gameObject.AddComponent<Image>();
+        ringImg.sprite = SpriteFactory.Circle;
+        ringImg.color = new Color(1f, 0.95f, 0.72f);
+        ringImg.raycastTarget = false;
+
+        var label = Ui.Label("Gain", rt, "+" + points, 40, new Color(0.50f, 0.28f, 0.10f),
+            Vector2.zero, new Vector2(120, 60), font: Ui.TitleFont);
+        AddCartoonText(label, 2f);
+
+        Tween.ScaleIn(rt, 0f, 0.25f);
+        StartCoroutine(BubbleRise(rt, group));
+    }
+
+    IEnumerator PunchScale(RectTransform rt, float amount, float dur)
+    {
+        if (rt == null) yield break;
+        float t = 0f;
+        while (t < dur)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / dur);
+            float s = 1f + amount * Mathf.Sin(p * Mathf.PI);
+            rt.localScale = new Vector3(s, s, 1f);
+            yield return null;
+        }
+        if (rt != null) rt.localScale = Vector3.one;
+    }
+
+    IEnumerator BubbleRise(RectTransform rt, CanvasGroup group)
+    {
+        yield return new WaitForSeconds(0.35f);
+        if (rt == null) yield break;
+        Vector2 start = rt.anchoredPosition;
+        float t = 0f;
+        const float dur = 0.55f;
+        while (t < dur)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / dur);
+            rt.anchoredPosition = start + new Vector2(0f, 70f * p);
             group.alpha = 1f - p;
             yield return null;
         }
