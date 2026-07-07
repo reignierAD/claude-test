@@ -195,7 +195,7 @@ public class GameController : MonoBehaviour
         _menuScreen = Ui.Stretch("Menu", _canvasRoot);
         int levelCount = GameConfig.S.LevelCount;
 
-        var menuTitle = Ui.Label("Title", _menuScreen, "Raggler's Challenge", 70, DeepOrange,
+        var menuTitle = Ui.Label("Title", _menuScreen, "You Shall Not Stack", 70, DeepOrange,
             new Vector2(0, 330), new Vector2(1200, 90), font: Ui.TitleFont);
         var menuTitleOutline = menuTitle.gameObject.AddComponent<Outline>();
         menuTitleOutline.effectColor = Color.white;
@@ -203,7 +203,7 @@ public class GameController : MonoBehaviour
         var menuTitleShadow = menuTitle.gameObject.AddComponent<Shadow>();
         menuTitleShadow.effectColor = new Color(0.36f, 0.20f, 0.06f, 0.55f);
         menuTitleShadow.effectDistance = new Vector2(0f, -6f);
-        Ui.Label("Subtitle", _menuScreen, "Raggler made off with everyone's gifts! Match three to take them back!",
+        Ui.Label("Subtitle", _menuScreen, "One does not simply stack seven tiles. Match three of a kind and clear them all!",
             26, Brown, new Vector2(0, 262), new Vector2(1200, 40), style: FontStyle.Normal);
 
         // total stars + help, top right (spaced away from the screen edge)
@@ -1225,7 +1225,7 @@ public class GameController : MonoBehaviour
 
     void ShowWinPopup(int stars, int timeBonus)
     {
-        var panel = BuildPopup("Level Clear!", 640, 700f, new Color(0.98f, 0.60f, 0.10f));
+        var panel = BuildPopup("You Shall Pass!", 640, 700f, new Color(0.98f, 0.60f, 0.10f));
 
         for (int s = 0; s < 3; s++)
         {
@@ -1259,8 +1259,8 @@ public class GameController : MonoBehaviour
 
     void ShowLosePopup()
     {
-        var panel = BuildPopup("Defeat...", 400, 700f, new Color(0.56f, 0.47f, 0.66f));
-        Ui.Label("Msg", panel, "The clearing zone overflowed!\nRaggler keeps the gifts... for now.", 28, Brown,
+        var panel = BuildPopup("You Shall Not Pass...", 400, 700f, new Color(0.56f, 0.47f, 0.66f));
+        Ui.Label("Msg", panel, "The tray overflowed and the shadow took hold.\nFly, you fools — and try again!", 28, Brown,
             new Vector2(0, 30), new Vector2(600, 90), style: FontStyle.Normal);
 
         int replayIndex = _levelIndex;
@@ -1315,14 +1315,14 @@ public class GameController : MonoBehaviour
     {
         var panel = BuildPopup("Notice", 640, 800);
         string rules =
-            "Raggler made off with everyone's gifts!\nDefeat him and take back the gifts!\n\n" +
+            "You shall not stack! The clearing zone takes only seven tiles.\nMatch three of a kind to clear them and win back the day.\n\n" +
             "1. Tap the cards to place them in the clearing zone below.\n" +
             "2. Match three identical cards to clear them automatically. Clear all cards on the screen to win.\n" +
             "3. The clearing zone can hold up to 7 cards. Go over, and you lose!\n" +
             "4. You may use items: Remove Card, Undo Card, and Refresh Card.\n" +
             "5. Some boards have face-down piles beside the clearing zone — only the front card can be played.\n" +
             "6. The rating for each level is based on how fast you complete it!\n\n" +
-            "Tokens: connect MetaMask to convert stars into RST (1 star = 1 token). Each level pays out once. " +
+            "Keep your stars secret, keep them safe — connect MetaMask to forge them into RST (1 star = 1 token). Each level pays out once. " +
             "In Endless, every cleared board banks the stars still lit, then the timer and stars reset — " +
             "a failed board banks nothing.";
         Ui.Label("Rules", panel, rules, 23, Brown, new Vector2(0, -10), new Vector2(700, 440),
