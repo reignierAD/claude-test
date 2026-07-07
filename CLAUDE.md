@@ -64,7 +64,9 @@ Web3 client stack (ship together when building): `Assets/Plugins/WebGL/Web3.jsli
 
 `CardSize 110`, `HalfStep 55`, `TraySize 7`, `HoldSize 3`,
 `ItemUseCapPerStage 10`, `MatchScore 30`, `MaxCombo 5`, `ComboWindow 4s`,
-`TimeBonusPerSecond 10`, `EndlessRoundBonus 100`, start inventory `37/5/23`.
+`TimeBonusPerSecond 10`, `EndlessRoundBonus 100`, plus the starting item
+inventory (`StartRemove/StartUndo/StartRefresh` — the user tunes these, so read
+the current values from the file rather than assuming).
 Board play-area bounds in `Board.cs`: `MaxCol 9`, `MaxRow 3` (half-steps;
 **rows are hard-capped so cards never climb over the HUD stars**).
 
