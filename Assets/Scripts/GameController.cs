@@ -546,12 +546,20 @@ public class GameController : MonoBehaviour
         if (boardTiles > maxBoard) boardTiles = maxBoard;
         int total = boardTiles + side * 2;
         while (total % 3 != 0) { boardTiles++; total++; }
-        int types = Mathf.Clamp(def.cardVarieties, 1, GameConfig.S.cardKinds.Length);
 
+        int triples = total / 3;
+        int types = Mathf.Clamp(def.cardVarieties, 1, GameConfig.S.cardKinds.Length);
+        // a board has only `triples` triples, so it can't show more distinct
+        // kinds than that — cap here so the setting behaves predictably
+        types = Mathf.Min(types, triples);
+
+        // guarantee each of the `types` kinds appears at least once: the first
+        // `types` triples cover kinds 0..types-1, the rest are random. This makes
+        // raising cardVarieties reliably add distinct faces (up to tiles/3).
         var bag = new List<int>();
-        for (int i = 0; i < total / 3; i++)
+        for (int i = 0; i < triples; i++)
         {
-            int t = _rng.Next(types);
+            int t = i < types ? i : _rng.Next(types);
             bag.Add(t); bag.Add(t); bag.Add(t);
         }
         for (int i = bag.Count - 1; i > 0; i--)
