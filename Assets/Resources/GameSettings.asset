@@ -61,16 +61,78 @@ MonoBehaviour:
   - cardName: 16
     sprite: {fileID: 817722753, guid: 56a81a8937c4b4e8d8e56437304a7371, type: 3}
     color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 17
+    sprite: {fileID: 1907786822, guid: dbe678cf0f8774d6e96fedd8b64aced6, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 18
+    sprite: {fileID: -1420394493, guid: 18e644914790246f78dc2710e3796bd3, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 19
+    sprite: {fileID: 1427087236, guid: fe3c4fd468f7f4be9ab6a9c4b0318918, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 20
+    sprite: {fileID: 1137993253, guid: 6eb54191dfcbd4773b3451240ef036a7, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 21
+    sprite: {fileID: 994584685, guid: 89b70d0cb17764126ab26125e0442651, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 22
+    sprite: {fileID: 471189028, guid: 0f612aa08d90345bfb522a51dcb3f3c8, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 23
+    sprite: {fileID: -27448742, guid: c9b78d58909614b78ac0416843927d15, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 24
+    sprite: {fileID: 1306692066, guid: 53a36565d5c1244febae9cd39aaf6d70, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 25
+    sprite: {fileID: -1455681768, guid: e34f9ab5f1b09444e9d63009a6051541, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 26
+    sprite: {fileID: 39362938, guid: 715c324ab8afe4ef8a995ca5c64af081, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 27
+    sprite: {fileID: -1556141293, guid: 445e27f03f8ba4e18a171155bc6c2c91, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 28
+    sprite: {fileID: 1225880571, guid: aecb9d84dc713464b9e253833a501fa5, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 29
+    sprite: {fileID: 1501871067, guid: e26710fcae42644a4a6765a2b7bca1d6, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
+  - cardName: 30
+    sprite: {fileID: -148342944, guid: 3129ab072c9644eddae9a4187fb7e1b5, type: 3}
+    color: {r: 1, g: 0.84, b: 0.3, a: 1}
   backgroundSprite: {fileID: 1745331509, guid: 8c0b9b24699554daeafe5721350f917b, type: 3}
   menuBackgroundSprite: {fileID: 985181438, guid: 3812297aa008c4fb1b6ea598e29551b0, type: 3}
   gameBackgroundSprite: {fileID: 1745331509, guid: 8c0b9b24699554daeafe5721350f917b, type: 3}
   backgroundColor: {r: 0, g: 0.4671625, b: 0.9716981, a: 1}
   menuSunburst: 1
   showMenuPowerUps: 0
-  cardBackSprite: {fileID: 0}
+  settingsIcon: {fileID: 1651551579, guid: 8762b9df3510f4735a2e4aba11c745b9, type: 3}
+  cardBorderColor: {r: 0, g: 0.8078432, b: 0.8196079, a: 1}
+  clearingZoneBorderColor: {r: 0.6901961, g: 0.76862746, b: 0.87058824, a: 1}
+  clearingZonePanelColor: {r: 0.3679245, g: 0.3679245, b: 0.3679245, a: 0.6313726}
+  removeZoneBorderColor: {r: 0.6901961, g: 0.7686275, b: 0.8705883, a: 1}
+  removeZonePanelColor: {r: 0.36862746, g: 0.36862746, b: 0.36862746, a: 0.6313726}
+  cardBackSprite: {fileID: 1893797724, guid: 45c8b884133994e58b0dc190639c88c5, type: 3}
   removeIcon: {fileID: 326053021, guid: 3a23208e3000e4541bbaafd60a8c318d, type: 3}
   undoIcon: {fileID: -338047938, guid: e33911bea70d240b8ae66a5ef9d65217, type: 3}
   refreshIcon: {fileID: 526556285, guid: 39e8dc4871cf24f239e75f1e619a936e, type: 3}
+  backgroundMusic: {fileID: 0}
+  sfxButtonClick: {fileID: 0}
+  sfxCardPressed: {fileID: 0}
+  sfxRemoveCard: {fileID: 0}
+  sfxUndoCard: {fileID: 0}
+  sfxRefreshCards: {fileID: 0}
+  sfxWin: {fileID: 0}
+  sfxLose: {fileID: 0}
+  sfxCombo:
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
+  - {fileID: 0}
   peekabooSprites:
   - {fileID: 1631466513, guid: 0b7bc0d14530e494682325999fbcdc4a, type: 3}
   - {fileID: -1621261105, guid: 4d925c00457da4bb7a65fa32d512d475, type: 3}
@@ -84,19 +146,19 @@ MonoBehaviour:
   peekabooShowTime: 2.5
   peekabooSize: 400
   levels:
-  - tiles: 15
-    cardVarieties: 5
+  - tiles: 9
+    cardVarieties: 3
     layers: 2
     threeStarTime: 20
     twoStarTime: 40
     sideStackCards: 0
-  - tiles: 24
-    cardVarieties: 6
+  - tiles: 18
+    cardVarieties: 5
     layers: 2
     threeStarTime: 30
     twoStarTime: 60
     sideStackCards: 0
-  - tiles: 36
+  - tiles: 27
     cardVarieties: 7
     layers: 3
     threeStarTime: 40
