@@ -100,6 +100,26 @@ public class GameSettings : ScriptableObject
     public Sprite undoIcon;
     public Sprite refreshIcon;
 
+    [Header("Audio")]
+    [Tooltip("Looping background music for the whole game. Drag & drop an AudioClip.")]
+    public AudioClip backgroundMusic;
+    [Tooltip("Plays on every UI button click.")]
+    public AudioClip sfxButtonClick;
+    [Tooltip("Plays when a card is tapped/pressed.")]
+    public AudioClip sfxCardPressed;
+    [Tooltip("Plays when the Remove power-up is used.")]
+    public AudioClip sfxRemoveCard;
+    [Tooltip("Plays when the Undo power-up is used.")]
+    public AudioClip sfxUndoCard;
+    [Tooltip("Plays when the Refresh power-up is used.")]
+    public AudioClip sfxRefreshCards;
+    [Tooltip("Plays when a level is won.")]
+    public AudioClip sfxWin;
+    [Tooltip("Plays when the game is lost (clearing zone overflow).")]
+    public AudioClip sfxLose;
+    [Tooltip("Combo match sounds: element 0 = combo 1, ... element 4 = combo 5.")]
+    public AudioClip[] sfxCombo = new AudioClip[5];
+
     [Header("Menu Peekaboo")]
     [Tooltip("Images that randomly peek from the screen edges on the main menu (memes welcome!). Empty = disabled.")]
     public Sprite[] peekabooSprites;

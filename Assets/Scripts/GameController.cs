@@ -101,7 +101,8 @@ public class GameController : MonoBehaviour
     {
         _canvasRoot = (RectTransform)canvas.transform;
         LoadInventory();
-        ApplyAudioSettings();
+        Ui.ClickSound = PlayClick;
+        AudioManager.Ensure(); // loads volume prefs + starts background music
         BuildBackground();
         BuildGameScreen();
         _tray.onTriple = HandleTriple;
@@ -212,14 +213,18 @@ public class GameController : MonoBehaviour
         StarIcon.Create(_menuScreen, 42, new Vector2(-290, -62), new Vector2(1f, 1f));
         Ui.Label("TotalStars", _menuScreen, total + "/" + (levelCount * 3), 30, Brown,
             new Vector2(-195, -62), new Vector2(130, 44), TextAnchor.MiddleLeft, anchor: new Vector2(1f, 1f));
-        var settingsBtn = Ui.MakeButton("Settings", _menuScreen, "", new Vector2(56, 56), new Vector2(-70, -62),
-            Orange, Color.white, 32, ShowSettingsPopup, new Vector2(1f, 1f));
-        var cogRt = Ui.Rect("Cog", settingsBtn.transform, new Vector2(40, 40), Vector2.zero);
-        var cogImg = cogRt.gameObject.AddComponent<Image>();
+        // settings: just the cog image (no button panel/border), a bit bigger
+        var settingsRt = Ui.Rect("Settings", _menuScreen, new Vector2(74, 74), new Vector2(-70, -62), new Vector2(1f, 1f));
+        var cogImg = settingsRt.gameObject.AddComponent<Image>();
         cogImg.sprite = GameConfig.S.settingsIcon != null ? GameConfig.S.settingsIcon : SpriteFactory.Gear;
-        cogImg.color = Color.white;
+        cogImg.color = new Color(0.93f, 0.55f, 0.18f);
         cogImg.preserveAspect = true;
-        cogImg.raycastTarget = false;
+        var cogShadow = settingsRt.gameObject.AddComponent<Shadow>();
+        cogShadow.effectColor = new Color(0.30f, 0.16f, 0.05f, 0.55f);
+        cogShadow.effectDistance = new Vector2(2f, -2f);
+        var settingsBtn = settingsRt.gameObject.AddComponent<Button>();
+        settingsBtn.targetGraphic = cogImg;
+        settingsBtn.onClick.AddListener(() => { PlayClick(); ShowSettingsPopup(); });
 
         // level grid (5 per row)
         int rows = (levelCount + 4) / 5;
@@ -319,11 +324,12 @@ public class GameController : MonoBehaviour
 
         var btn = root.gameObject.AddComponent<Button>();
         btn.targetGraphic = borderImg;
-        if (onClick != null)
+        var action = onClick;
+        btn.onClick.AddListener(() =>
         {
-            var action = onClick;
-            btn.onClick.AddListener(() => action());
-        }
+            PlayClick();
+            action?.Invoke();
+        });
         return btn;
     }
 
@@ -662,6 +668,7 @@ public class GameController : MonoBehaviour
                 Toast("The clearing zone is full!");
                 return;
             }
+            PlaySfx(GameConfig.S.sfxCardPressed);
             _held.Remove(card);
             card.inHold = false;
             PlaceInTray(card);
@@ -674,6 +681,7 @@ public class GameController : MonoBehaviour
         {
             var stack = card.stackSide == 0 ? _leftStack : _rightStack;
             if (stack.Front != card) return;
+            PlaySfx(GameConfig.S.sfxCardPressed);
             stack.Take(card);
             _undoStack.Add(card);
             PlaceInTray(card);
@@ -681,6 +689,7 @@ public class GameController : MonoBehaviour
         }
 
         // board card
+        PlaySfx(GameConfig.S.sfxCardPressed);
         _board.Take(card);
         _undoStack.Add(card);
         PlaceInTray(card);
@@ -719,6 +728,10 @@ public class GameController : MonoBehaviour
         _score += points;
         ScorePop(points, _combo);
         ScoreGainFx(points);
+
+        var combos = GameConfig.S.sfxCombo;
+        if (combos != null && combos.Length > 0)
+            PlaySfx(combos[Mathf.Clamp(_combo - 1, 0, combos.Length - 1)]);
     }
 
     /// <summary>
@@ -990,6 +1003,7 @@ public class GameController : MonoBehaviour
             _held.Add(c);
         }
         RelayoutHold();
+        PlaySfx(GameConfig.S.sfxRemoveCard);
 
         _invRemove--;
         _usedRemove++;
@@ -1014,6 +1028,7 @@ public class GameController : MonoBehaviour
         if (target.stackSide == 0) _leftStack.PushFront(target);
         else if (target.stackSide == 1) _rightStack.PushFront(target);
         else _board.Return(target);
+        PlaySfx(GameConfig.S.sfxUndoCard);
 
         _invUndo--;
         _usedUndo++;
@@ -1026,11 +1041,48 @@ public class GameController : MonoBehaviour
         if (!CanUseRefresh) return;
 
         _board.ShuffleTypes(_rng);
+        PlaySfx(GameConfig.S.sfxRefreshCards);
+        StartCoroutine(RefreshAnimation());
 
         _invRefresh--;
         _usedRefresh++;
         SaveInventory();
         UpdateHud();
+    }
+
+    /// <summary>Every board card does a quick spin-and-pop (scattered timing)
+    /// when the Refresh power-up reshuffles the faces.</summary>
+    IEnumerator RefreshAnimation()
+    {
+        var cards = _board.cards;
+        for (int i = 0; i < cards.Count; i++)
+        {
+            var c = cards[i];
+            if (c != null)
+                StartCoroutine(CardSpinPop(c.Rect, Random.Range(0f, 0.16f)));
+        }
+        yield break;
+    }
+
+    IEnumerator CardSpinPop(RectTransform rt, float delay)
+    {
+        if (delay > 0f) yield return new WaitForSeconds(delay);
+        if (rt == null) yield break;
+
+        const float dur = 0.34f;
+        float t = 0f;
+        while (t < dur)
+        {
+            if (rt == null) yield break;
+            t += Time.deltaTime;
+            float p = Mathf.Clamp01(t / dur);
+            rt.localEulerAngles = new Vector3(0f, 0f, 360f * p);
+            float s = 1f - 0.35f * Mathf.Sin(p * Mathf.PI); // dip then return
+            rt.localScale = new Vector3(s, s, 1f);
+            yield return null;
+        }
+        rt.localEulerAngles = Vector3.zero;
+        rt.localScale = Vector3.one;
     }
 
     void RelayoutHold()
@@ -1225,6 +1277,7 @@ public class GameController : MonoBehaviour
 
     void ShowWinPopup(int stars, int timeBonus)
     {
+        PlaySfx(GameConfig.S.sfxWin);
         var panel = BuildPopup("You Shall Pass!", 640, 700f, new Color(0.98f, 0.60f, 0.10f));
 
         for (int s = 0; s < 3; s++)
@@ -1259,6 +1312,7 @@ public class GameController : MonoBehaviour
 
     void ShowLosePopup()
     {
+        PlaySfx(GameConfig.S.sfxLose);
         var panel = BuildPopup("You Shall Not Pass...", 400, 700f, new Color(0.56f, 0.47f, 0.66f));
         Ui.Label("Msg", panel, "The tray overflowed and the shadow took hold.\nFly, you fools — and try again!", 28, Brown,
             new Vector2(0, 30), new Vector2(600, 90), style: FontStyle.Normal);
@@ -1272,6 +1326,7 @@ public class GameController : MonoBehaviour
 
     void ShowEndlessOverPopup(bool timeUp, int best)
     {
+        PlaySfx(_endlessFinalStars >= 2 ? GameConfig.S.sfxWin : GameConfig.S.sfxLose);
         var panel = BuildPopup(timeUp ? "Time's Up!" : "Endless Over", 620, 700f,
             timeUp ? new Color(0.92f, 0.42f, 0.52f) : new Color(0.56f, 0.47f, 0.66f));
 
@@ -1337,10 +1392,17 @@ public class GameController : MonoBehaviour
 
     void ApplyAudioSettings()
     {
-        // No AudioSources are wired yet, so drive the global listener as a
-        // stand-in for the music/master channel.
-        bool musicMute = PlayerPrefs.GetInt(MusicMuteKey, 0) == 1;
-        AudioListener.volume = musicMute ? 0f : PlayerPrefs.GetFloat(MusicVolKey, 0.7f);
+        AudioManager.Ensure().LoadPrefs();
+    }
+
+    void PlaySfx(AudioClip clip)
+    {
+        AudioManager.Ensure().PlaySfx(clip);
+    }
+
+    void PlayClick()
+    {
+        PlaySfx(GameConfig.S.sfxButtonClick);
     }
 
     void ShowSettingsPopup()
@@ -1362,16 +1424,16 @@ public class GameController : MonoBehaviour
         Ui.Label("SfxLbl", panel, "SFX", 28, Brown, new Vector2(-170, 175), new Vector2(120, 40),
             TextAnchor.MiddleRight);
         Ui.MakeSlider(panel, new Vector2(30, 175), new Vector2(260, 34), _pendSfx,
-            v => _pendSfx = v, track, Orange, DeepOrange);
+            v => { _pendSfx = v; AudioManager.Ensure().SetSfx(_pendSfx, _pendSfxMute); }, track, Orange, DeepOrange);
         Ui.MakeToggle(panel, new Vector2(215, 175), 40f, _pendSfxMute,
-            v => _pendSfxMute = v, boxCol, DeepOrange);
+            v => { _pendSfxMute = v; AudioManager.Ensure().SetSfx(_pendSfx, _pendSfxMute); }, boxCol, DeepOrange);
 
         Ui.Label("MusLbl", panel, "Music", 28, Brown, new Vector2(-170, 115), new Vector2(120, 40),
             TextAnchor.MiddleRight);
         Ui.MakeSlider(panel, new Vector2(30, 115), new Vector2(260, 34), _pendMusic,
-            v => _pendMusic = v, track, Orange, DeepOrange);
+            v => { _pendMusic = v; AudioManager.Ensure().SetMusic(_pendMusic, _pendMusicMute); }, track, Orange, DeepOrange);
         Ui.MakeToggle(panel, new Vector2(215, 115), 40f, _pendMusicMute,
-            v => _pendMusicMute = v, boxCol, DeepOrange);
+            v => { _pendMusicMute = v; AudioManager.Ensure().SetMusic(_pendMusic, _pendMusicMute); }, boxCol, DeepOrange);
 
         // --- button column (spaced well below the audio rows) ---
         BuildWalletSection(panel, 20f);

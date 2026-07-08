@@ -10,6 +10,9 @@ public static class Ui
     static Font _font;
     static Font _titleFont;
 
+    /// <summary>Hook the game sets so every MakeButton plays a UI click sound.</summary>
+    public static Action ClickSound;
+
     public static Font DefaultFont
     {
         get
@@ -305,8 +308,11 @@ public static class Ui
         btn.targetGraphic = fillImg; // disabled/pressed tint covers the body
         if (!string.IsNullOrEmpty(label))
             Label("Label", body, label, fontSize, textColor, Vector2.zero, size, font: TitleFont);
-        if (onClick != null)
-            btn.onClick.AddListener(() => onClick());
+        btn.onClick.AddListener(() =>
+        {
+            ClickSound?.Invoke();
+            onClick?.Invoke();
+        });
         return btn;
     }
 
