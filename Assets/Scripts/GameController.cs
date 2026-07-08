@@ -195,7 +195,7 @@ public class GameController : MonoBehaviour
         _menuScreen = Ui.Stretch("Menu", _canvasRoot);
         int levelCount = GameConfig.S.LevelCount;
 
-        var menuTitle = Ui.Label("Title", _menuScreen, "You Shall Not Stack", 70, DeepOrange,
+        var menuTitle = Ui.Label("Title", _menuScreen, "You Shall Not Stack!", 70, DeepOrange,
             new Vector2(0, 330), new Vector2(1200, 90), font: Ui.TitleFont);
         var menuTitleOutline = menuTitle.gameObject.AddComponent<Outline>();
         menuTitleOutline.effectColor = Color.white;
