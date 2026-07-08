@@ -548,18 +548,30 @@ public class GameController : MonoBehaviour
         while (total % 3 != 0) { boardTiles++; total++; }
 
         int triples = total / 3;
-        int types = Mathf.Clamp(def.cardVarieties, 1, GameConfig.S.cardKinds.Length);
+        int kindCount = GameConfig.S.cardKinds.Length;
+        int types = Mathf.Clamp(def.cardVarieties, 1, kindCount);
         // a board has only `triples` triples, so it can't show more distinct
         // kinds than that — cap here so the setting behaves predictably
         types = Mathf.Min(types, triples);
 
-        // guarantee each of the `types` kinds appears at least once: the first
-        // `types` triples cover kinds 0..types-1, the rest are random. This makes
-        // raising cardVarieties reliably add distinct faces (up to tiles/3).
+        // pick `types` DISTINCT kinds at random from the whole pool (so each
+        // deal uses a different set, not always the first ones in the list)
+        var pool = new List<int>();
+        for (int i = 0; i < kindCount; i++) pool.Add(i);
+        for (int i = pool.Count - 1; i > 0; i--)
+        {
+            int j = _rng.Next(i + 1);
+            int tmp = pool[i]; pool[i] = pool[j]; pool[j] = tmp;
+        }
+        var chosen = pool.GetRange(0, types);
+
+        // guarantee each chosen kind appears at least once (first `types`
+        // triples), the rest are random among the chosen set. Raising
+        // cardVarieties reliably adds distinct faces (up to tiles/3).
         var bag = new List<int>();
         for (int i = 0; i < triples; i++)
         {
-            int t = i < types ? i : _rng.Next(types);
+            int t = i < types ? chosen[i] : chosen[_rng.Next(types)];
             bag.Add(t); bag.Add(t); bag.Add(t);
         }
         for (int i = bag.Count - 1; i > 0; i--)
