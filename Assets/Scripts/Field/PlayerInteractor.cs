@@ -25,11 +25,25 @@ namespace SuikodenLike.Field
             if (!Input.GetKeyDown(interactKey) && !Input.GetButtonDown("Submit")) return;
 
             Vector2 origin = (Vector2)transform.position + player.Facing * reach;
-            Collider2D hit = Physics2D.OverlapCircle(origin, radius, interactableMask);
-            if (hit == null) return;
 
-            var interactable = hit.GetComponentInParent<Interactable>();
-            if (interactable != null) interactable.Interact(player);
+            // OverlapCircle returns an arbitrary single collider, which is
+            // often our own body or a piece of scenery — gather them all and
+            // take the nearest one that's actually interactable.
+            var hits = Physics2D.OverlapCircleAll(origin, radius, interactableMask);
+            Interactable best = null;
+            float bestDistance = float.MaxValue;
+
+            foreach (var hit in hits)
+            {
+                var candidate = hit.GetComponentInParent<Interactable>();
+                if (candidate == null) continue;
+                if (candidate.transform.IsChildOf(transform)) continue; // ignore ourselves
+
+                float d = Vector2.SqrMagnitude((Vector2)candidate.transform.position - origin);
+                if (d < bestDistance) { bestDistance = d; best = candidate; }
+            }
+
+            if (best != null) best.Interact(player);
         }
 
         void OnDrawGizmosSelected()

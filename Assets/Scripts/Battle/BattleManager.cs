@@ -35,13 +35,14 @@ namespace SuikodenLike.Battle
         BattleAction pendingPlayerAction;
         bool running;
 
-        void OnEnable()
+        // Subscribe in Start so GameManager.Awake has definitely assigned Instance.
+        void Start()
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnBattleRequested += BeginBattle;
         }
 
-        void OnDisable()
+        void OnDestroy()
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnBattleRequested -= BeginBattle;
@@ -249,7 +250,6 @@ namespace SuikodenLike.Battle
 
         void CleanupDead()
         {
-            foreach (var u in EnemyUnits.Where(u => !u.IsAlive)) { }
             OnStateChanged?.Invoke();
         }
 

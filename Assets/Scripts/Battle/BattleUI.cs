@@ -94,7 +94,6 @@ namespace SuikodenLike.Battle
             {
                 if (s != null && s.mpCost <= currentActor.currentMP)
                 {
-                    bool targetsEnemy = s.target == SkillTarget.SingleEnemy || s.target == SkillTarget.AllEnemies;
                     if (s.target == SkillTarget.SingleEnemy || s.target == SkillTarget.SingleAlly)
                         BeginTargeting(BattleActionType.Skill, s, null);
                     else

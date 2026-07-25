@@ -1,7 +1,19 @@
 # Setup: getting a playable scene running
 
-This framework ships the *code*. Here's how to assemble a minimal playable scene
-in the Unity Editor. Takes ~15 minutes the first time.
+## The fast way
+
+1. Open the project in Unity 2022.3 LTS or newer.
+2. **Window → TextMeshPro → Import TMP Essential Resources.**
+3. **SuikodenLike → Build Sample Game.**
+4. Press Play.
+
+That generates everything — art, content assets, the scene, all the wiring — via
+`Assets/Scripts/Editor/`. If it complains about TextMeshPro, do step 2 and run it
+again.
+
+The rest of this page is the **manual route**: how to assemble the same scene
+yourself, so you understand what the generator did and can build your own maps.
+Takes ~15 minutes.
 
 ## 1. Open the project
 - Add this folder in **Unity Hub** and open it with Unity 2022.3 LTS (or newer).

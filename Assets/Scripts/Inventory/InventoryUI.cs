@@ -16,6 +16,8 @@ namespace SuikodenLike.Inventory
         [SerializeField] Transform listContainer;
         [SerializeField] GameObject rowPrefab;   // needs a TMP_Text + optional Image
         [SerializeField] TMP_Text goldText;
+        [Tooltip("Press to open/close the bag in the field. None = no hotkey.")]
+        [SerializeField] KeyCode toggleKey = KeyCode.I;
 
         Inventory inventory;
 
@@ -30,6 +32,17 @@ namespace SuikodenLike.Inventory
         void OnDestroy()
         {
             if (inventory != null) inventory.OnChanged -= Rebuild;
+        }
+
+        void Update()
+        {
+            if (toggleKey == KeyCode.None) return;
+            // Don't let the bag open mid-conversation or mid-battle.
+            var gm = GameManager.Instance;
+            if (gm != null && gm.InBattle) return;
+            if (Dialogue.DialogueManager.Instance != null &&
+                Dialogue.DialogueManager.Instance.IsRunning) return;
+            if (Input.GetKeyDown(toggleKey)) Toggle();
         }
 
         public void Toggle()

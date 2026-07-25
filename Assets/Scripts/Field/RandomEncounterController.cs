@@ -26,13 +26,15 @@ namespace SuikodenLike.Field
 
         void Awake() => player = GetComponent<PlayerController>();
 
-        void OnEnable()
+        // Subscribe in Start, not OnEnable: GameManager.Instance is assigned in
+        // Awake, and OnEnable can run before it on the very first frame.
+        void Start()
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnBattleEnded += HandleBattleEnded;
         }
 
-        void OnDisable()
+        void OnDestroy()
         {
             if (GameManager.Instance != null)
                 GameManager.Instance.OnBattleEnded -= HandleBattleEnded;

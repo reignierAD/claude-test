@@ -51,6 +51,10 @@ namespace SuikodenLike.Dialogue
             if (player) player.ControlEnabled = false;
             ui.Show();
 
+            // Let the interact keypress that opened this conversation finish
+            // before we start reading input, or it instantly skips line one.
+            yield return null;
+
             int index = 0;
             while (index >= 0 && index < data.lines.Count)
             {
