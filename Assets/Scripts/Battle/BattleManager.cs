@@ -243,7 +243,7 @@ namespace SuikodenLike.Battle
 
         bool TryRun(BattleUnit actor)
         {
-            float avgFoeSpeed = EnemyUnits.Where(u => u.IsAlive).DefaultIfEmpty().Average(u => u?.Speed ?? 0);
+            float avgFoeSpeed = EnemyUnits.Where(u => u.IsAlive).DefaultIfEmpty().Average(u => u?.Speed ?? 0.0f);
             float chance = 0.5f + (actor.Speed - avgFoeSpeed) * 0.05f;
             return UnityEngine.Random.value <= Mathf.Clamp(chance, 0.1f, 0.95f);
         }
