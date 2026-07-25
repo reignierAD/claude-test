@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using SuikodenLike.Core;
 using SuikodenLike.Data;
 
 namespace SuikodenLike.EditorTools
